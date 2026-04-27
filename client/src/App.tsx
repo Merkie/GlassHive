@@ -133,6 +133,7 @@ export default function App() {
   const [durationSec, setDurationSec] = createSignal(90);
   const [mode, setMode] = createSignal<"requeue" | "random">("requeue");
   const [persistentMemory, setPersistentMemory] = createSignal(true);
+  const [showAdvanced, setShowAdvanced] = createSignal(false);
 
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
@@ -262,7 +263,7 @@ export default function App() {
             disabled={loading()}
           />
 
-          <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
             <Slider
               label="Agents"
               value={agentCount()}
@@ -273,70 +274,95 @@ export default function App() {
               accent="text-orange-400"
             />
             <Slider
-              label="Steps / agent"
-              value={maxStepsPerAgent()}
-              min={1}
-              max={40}
-              onChange={setMaxStepsPerAgent}
-              disabled={loading()}
-              accent="text-fuchsia-400"
-            />
-            <Slider
-              label="Simulation Duration (s)"
+              label="Simulation duration"
               value={durationSec()}
               min={10}
-              max={600}
+              max={300}
               step={10}
               onChange={setDurationSec}
               disabled={loading()}
               accent="text-emerald-400"
+              format={formatDuration}
             />
           </div>
 
           <div class="mt-5">
-            <label class="text-sm font-medium text-neutral-300">
-              Respawn mode
-            </label>
-            <div class="mt-2 grid grid-cols-2 gap-2">
-              <ModeButton
-                active={mode() === "requeue"}
-                disabled={loading()}
-                onClick={() => setMode("requeue")}
-                label="Requeue"
-              />
-              <ModeButton
-                active={mode() === "random"}
-                disabled={loading()}
-                onClick={() => setMode("random")}
-                label="Random"
-              />
-            </div>
-            <p class="mt-2 text-xs italic text-neutral-500">
-              {mode() === "requeue"
-                ? "round-robin: each agent waits their turn before being respawned"
-                : "any participant fills the next open slot — louder users post more, others post less"}
-            </p>
-          </div>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              class="flex w-full items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950/40 px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-900/60"
+              aria-expanded={showAdvanced()}
+            >
+              <span>Advanced settings</span>
+              <span
+                class="text-xs text-neutral-500 transition-transform"
+                style={{ transform: showAdvanced() ? "rotate(90deg)" : "rotate(0deg)" }}
+              >
+                ▶
+              </span>
+            </button>
+            <Show when={showAdvanced()}>
+              <div class="mt-4 space-y-5 rounded-lg border border-neutral-800/60 bg-neutral-950/30 p-4">
+                <Slider
+                  label="Agent lifespan"
+                  value={maxStepsPerAgent()}
+                  min={1}
+                  max={40}
+                  onChange={setMaxStepsPerAgent}
+                  disabled={loading()}
+                  accent="text-fuchsia-400"
+                  unit="steps"
+                />
 
-          <div class="mt-5">
-            <label class="text-sm font-medium text-neutral-300">
-              Persistent agent memory
-            </label>
-            <div class="mt-2 flex items-center gap-3">
-              <Toggle
-                on={persistentMemory()}
-                disabled={loading()}
-                onToggle={() => setPersistentMemory((v) => !v)}
-              />
-              <span class="text-sm font-semibold text-neutral-200">
-                {persistentMemory() ? "On" : "Off"}
-              </span>
-              <span class="text-xs italic text-neutral-500">
-                {persistentMemory()
-                  ? "agents resume their conversation when respawned"
-                  : "every respawn boots fresh from the system prompt"}
-              </span>
-            </div>
+                <div class="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label class="text-sm font-medium text-neutral-300">
+                    Respawn mode
+                  </label>
+                  <div class="mt-2 grid grid-cols-2 gap-2">
+                    <ModeButton
+                      active={mode() === "requeue"}
+                      disabled={loading()}
+                      onClick={() => setMode("requeue")}
+                      label="Requeue"
+                    />
+                    <ModeButton
+                      active={mode() === "random"}
+                      disabled={loading()}
+                      onClick={() => setMode("random")}
+                      label="Random"
+                    />
+                  </div>
+                  <p class="mt-2 text-xs italic text-neutral-500">
+                    {mode() === "requeue"
+                      ? "round-robin: each agent waits their turn before being respawned"
+                      : "any participant fills the next open slot — louder users post more, others post less"}
+                  </p>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium text-neutral-300">
+                    Persistent agent memory
+                  </label>
+                  <div class="mt-2 flex items-center gap-3">
+                    <Toggle
+                      on={persistentMemory()}
+                      disabled={loading()}
+                      onToggle={() => setPersistentMemory((v) => !v)}
+                    />
+                    <span class="text-sm font-semibold text-neutral-200">
+                      {persistentMemory() ? "On" : "Off"}
+                    </span>
+                  </div>
+                  <p class="mt-2 text-xs italic text-neutral-500">
+                    {persistentMemory()
+                      ? "agents resume their conversation when respawned"
+                      : "every respawn boots fresh from the system prompt"}
+                  </p>
+                </div>
+                </div>
+              </div>
+            </Show>
           </div>
 
           <div class="mt-5 flex justify-end">
@@ -520,12 +546,28 @@ function Slider(props: {
   onChange: (n: number) => void;
   disabled: boolean;
   accent: string;
+  unit?: string;
+  format?: (n: number) => string;
 }) {
   return (
     <div>
-      <div class="flex items-center justify-between text-sm text-neutral-300">
+      <div class="flex items-center justify-between text-sm font-medium text-neutral-300">
         <span>{props.label}</span>
-        <span class={`font-mono text-lg font-bold ${props.accent}`}>{props.value}</span>
+        <span class={`font-mono text-lg font-bold ${props.accent}`}>
+          <Show
+            when={props.format}
+            fallback={
+              <>
+                {props.value}
+                <Show when={props.unit}>
+                  <span class="ml-1 text-sm font-normal text-neutral-400">{props.unit}</span>
+                </Show>
+              </>
+            }
+          >
+            {(format) => format()(props.value)}
+          </Show>
+        </span>
       </div>
       <input
         type="range"
@@ -537,12 +579,16 @@ function Slider(props: {
         disabled={props.disabled}
         class="mt-2 w-full accent-orange-500"
       />
-      <div class="mt-1 flex justify-between text-xs text-neutral-500">
-        <span>{props.min}</span>
-        <span>{props.max}</span>
-      </div>
     </div>
   );
+}
+
+function formatDuration(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m === 0) return `${s}s`;
+  if (s === 0) return `${m}m`;
+  return `${m}m${s}s`;
 }
 
 function formatActivity(e: Activity): string {

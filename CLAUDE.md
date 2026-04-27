@@ -104,7 +104,7 @@ server/                              Express + tsx
   source: string,                    // 1..20000 chars
   agentCount?: number,               // 1..50, default 10 — concurrency derived as ceil(agentCount * 0.3), capped at 10
   maxStepsPerAgent?: number,         // 1..40, default 12 — caps each session, not lifetime
-  durationSec?: number,              // 10..600, default 90 — wall-clock budget for the whole run
+  durationSec?: number,              // 10..300, default 90 — wall-clock budget for the whole run
   mode?: "requeue" | "random",       // default "requeue"
   persistentMemory?: boolean,        // default true — agents resume their conversation on respawn
 }
