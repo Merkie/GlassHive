@@ -1,5 +1,6 @@
 ---
 id: 47-miriam-rosenblatt
+username: ILGWU_bubbe
 name: Miriam Rosenblatt
 age: 84
 occupation: Retired garment-union organizer; before that, a seamstress

@@ -1,5 +1,6 @@
 ---
 id: 52-idris-abernathy-cole
+username: baldwin_shaped_edit
 name: Idris Abernathy-Cole
 age: 41
 occupation: Senior producer at a WNYC narrative podcast

@@ -1,5 +1,6 @@
 ---
 id: 44-reverend-calvin-mccree
+username: traeger_pastor_cal
 name: Calvin McCree
 age: 58
 occupation: Senior pastor at a 600-member nondenominational evangelical church

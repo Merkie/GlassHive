@@ -1,5 +1,6 @@
 ---
 id: 68-brayden-kowalczyk
+username: punisher_dragonstein
 name: Brayden Kowalczyk
 age: 16
 occupation: High school junior, part-time GameStop employee

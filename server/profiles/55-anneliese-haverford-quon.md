@@ -1,5 +1,6 @@
 ---
 id: 55-anneliese-haverford-quon
+username: second_chair_31
 name: Anneliese Haverford-Quon
 age: 67
 occupation: Second violinist with a long-running Lincoln Center chamber ensemble

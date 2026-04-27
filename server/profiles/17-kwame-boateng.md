@@ -1,5 +1,6 @@
 ---
 id: 17-kwame-boateng
+username: foia_bronzeville
 name: Kwame Boateng
 age: 38
 occupation: Investigative journalist, metro desk

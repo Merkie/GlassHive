@@ -1,5 +1,6 @@
 ---
 id: 14-marco-bellarosa
+username: bouguereau_grappa
 name: Marco Bellarosa
 age: 58
 occupation: Museum curator, 19th-century European painting

@@ -1,5 +1,6 @@
 ---
 id: 27-jamie-whitlock
+username: HAHA_NO_WAY
 name: Jamie Whitlock
 age: 19
 occupation: Twitch streamer (variety, 12k followers, grinding toward partner)

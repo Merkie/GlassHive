@@ -1,5 +1,6 @@
 ---
 id: 05-emeka-okafor
+username: samuel_the_generator
 name: Emeka Okafor
 age: 41
 occupation: Construction foreman

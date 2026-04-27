@@ -1,5 +1,6 @@
 ---
 id: 08-jamal-whitfield
+username: crate_dig_901
 name: Jamal Whitfield
 age: 26
 occupation: Amazon warehouse associate, part-time DJ on weekends

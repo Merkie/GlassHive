@@ -1,5 +1,6 @@
 ---
 id: 65-shauna-delacroix-jennings
+username: skanks4thememories
 name: Shauna Delacroix-Jennings
 age: 29
 occupation: Comedy podcast producer and sometime open-mic'er

@@ -1,5 +1,6 @@
 ---
 id: 42-dwayne-pritchard
+username: gunny_0500_traeger
 name: Dwayne Pritchard
 age: 41
 occupation: Marine Corps drill instructor (Gunnery Sergeant)

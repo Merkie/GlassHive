@@ -1,5 +1,6 @@
 ---
 id: 58-marcus-tanaka-powell
+username: section113_neat
 name: Marcus Tanaka-Powell
 age: 47
 occupation: Talent manager at a mid-size management company, comedy and alt-comedy roster

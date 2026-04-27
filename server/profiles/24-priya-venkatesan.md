@@ -1,5 +1,6 @@
 ---
 id: 24-priya-venkatesan
+username: unwinding_captable
 name: Priya Venkatesan
 age: 41
 occupation: SaaS startup founder (HR compliance tooling)

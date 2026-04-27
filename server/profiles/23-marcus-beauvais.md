@@ -1,5 +1,6 @@
 ---
 id: 23-marcus-beauvais
+username: retention_curve
 name: Marcus Beauvais
 age: 34
 occupation: Mid-tier YouTuber (tech reviews, 480k subs)

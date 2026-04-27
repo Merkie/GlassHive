@@ -1,5 +1,6 @@
 ---
 id: 32-marcus-ogundimu
+username: forkInTheSocket
 name: Marcus Ogundimu
 age: 41
 occupation: ER physician at a Level 1 trauma center

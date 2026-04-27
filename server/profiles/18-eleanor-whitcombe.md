@@ -1,5 +1,6 @@
 ---
 id: 18-eleanor-whitcombe
+username: NineBranchEleanor
 name: Eleanor Whitcombe
 age: 52
 occupation: Head librarian, regional public library system

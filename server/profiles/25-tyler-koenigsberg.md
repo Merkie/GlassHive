@@ -1,5 +1,6 @@
 ---
 id: 25-tyler-koenigsberg
+username: ExitLiquidityKing
 name: Tyler Koenigsberg
 age: 24
 occupation: Crypto influencer and self-described "onchain degen"

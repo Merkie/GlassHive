@@ -1,5 +1,6 @@
 ---
 id: 16-hollis-wren
+username: chapbook_gerard
 name: Hollis Wren
 age: 26
 occupation: Poet and part-time bookstore clerk

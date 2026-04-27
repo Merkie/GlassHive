@@ -1,5 +1,6 @@
 ---
 id: 28-harriet-osei-bramwell
+username: nuke_at_2am
 name: Harriet Osei-Bramwell
 age: 44
 occupation: Senior VFX artist at a feature-film studio (compositor, 18 years in)

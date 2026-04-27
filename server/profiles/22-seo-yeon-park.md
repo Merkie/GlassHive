@@ -1,5 +1,6 @@
 ---
 id: 22-seo-yeon-park
+username: griefcrab3am
 name: Seo-yeon Park
 age: 26
 occupation: Indie game developer (solo dev, pixel-art roguelikes)

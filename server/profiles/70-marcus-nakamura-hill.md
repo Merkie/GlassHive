@@ -1,5 +1,6 @@
 ---
 id: 70-marcus-nakamura-hill
+username: garage_wheeze_0145
 name: Marcus Nakamura-Hill
 age: 34
 occupation: HVAC tech, married dad of two, sneaks in games at 1am

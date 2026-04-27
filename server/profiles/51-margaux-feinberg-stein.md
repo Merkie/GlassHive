@@ -1,5 +1,6 @@
 ---
 id: 51-margaux-feinberg-stein
+username: closedlip_curator
 name: Margaux Feinberg-Stein
 age: 58
 occupation: Gallery owner specializing in mid-career women sculptors

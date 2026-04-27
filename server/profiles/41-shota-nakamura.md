@@ -1,5 +1,6 @@
 ---
 id: 41-shota-nakamura
+username: moss_and_persimmon
 name: Shota Nakamura
 age: 54
 occupation: Zen Buddhist monk at a small mountain temple

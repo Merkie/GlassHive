@@ -1,5 +1,6 @@
 ---
 id: 49-wyatt-hollings
+username: heeler_with_collies
 name: Wyatt Hollings
 age: 62
 occupation: Working rancher and part-time rodeo cowboy (team roping, heeler)

@@ -1,5 +1,6 @@
 ---
 id: 62-marisol-quintanilla
+username: stickNpokeMari
 name: Marisol Quintanilla
 age: 31
 occupation: Cannabis dispensary manager and part-time tattoo apprentice

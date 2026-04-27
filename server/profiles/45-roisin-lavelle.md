@@ -1,5 +1,6 @@
 ---
 id: 45-roisin-lavelle
+username: clubsoda_roisin
 name: Roisin Lavelle
 age: 37
 occupation: Touring stand-up comic, 14 years in, one half-hour special, opens for bigger names

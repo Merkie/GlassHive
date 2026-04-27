@@ -1,5 +1,6 @@
 ---
 id: 13-tamsin-okafor
+username: SS3_debate_chair
 name: Tamsin Okafor
 age: 34
 occupation: High school English teacher

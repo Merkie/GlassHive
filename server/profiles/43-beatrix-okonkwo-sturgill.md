@@ -1,5 +1,6 @@
 ---
 id: 43-beatrix-okonkwo-sturgill
+username: letterboxd_bea_07
 name: Beatrix Okonkwo-Sturgill
 age: 16
 occupation: High school junior, debate team, works weekends at a frozen yogurt shop

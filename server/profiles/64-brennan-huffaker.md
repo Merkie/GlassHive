@@ -1,5 +1,6 @@
 ---
 id: 64-brennan-huffaker
+username: solGarageGains
 name: Brennan Huffaker
 age: 35
 occupation: Ex-SF software engineer, now runs a small crypto fund from home

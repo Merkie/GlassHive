@@ -1,5 +1,6 @@
 ---
 id: 59-bao-nguyen-park
+username: dumplingDiarist
 name: Bao Nguyen-Park
 age: 24
 occupation: Casting assistant by day, 180k-follower TikTok comedian by night

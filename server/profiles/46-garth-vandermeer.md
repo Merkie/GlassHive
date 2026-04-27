@@ -1,5 +1,6 @@
 ---
 id: 46-garth-vandermeer
+username: vortex_signal_49
 name: Garth Vandermeer
 age: 49
 occupation: Host of a mid-tier conspiracy podcast ("The Unseen Current"), 90k weekly listeners

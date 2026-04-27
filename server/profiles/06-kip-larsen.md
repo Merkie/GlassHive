@@ -1,5 +1,6 @@
 ---
 id: 06-kip-larsen
+username: deere4020_quietly
 name: Kip Larsen
 age: 62
 occupation: Corn and soybean farmer

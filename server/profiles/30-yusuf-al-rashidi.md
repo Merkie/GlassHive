@@ -1,5 +1,6 @@
 ---
 id: 30-yusuf-al-rashidi
+username: U87_basement
 name: Yusuf Al-Rashidi
 age: 45
 occupation: Podcast producer and audio engineer (narrative documentary shows)

@@ -1,5 +1,6 @@
 ---
 id: 34-chadwick-ellsworth-iii
+username: RoundHill_sub90
 name: Chadwick Ellsworth III
 age: 58
 occupation: CEO of a publicly traded industrial supply company

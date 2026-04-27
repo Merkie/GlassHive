@@ -1,5 +1,6 @@
 ---
 id: 60-theodora-okigwe
+username: TeddyGradesYou
 name: Theodora Okigwe
 age: 52
 occupation: Freelance colorist, mostly indie features and high-end commercials

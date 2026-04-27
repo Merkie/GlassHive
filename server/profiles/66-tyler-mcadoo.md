@@ -1,5 +1,6 @@
 ---
 id: 66-tyler-mcadoo
+username: skibidi_rizzler04
 name: Tyler McAdoo
 age: 14
 occupation: 8th grader

@@ -1,5 +1,6 @@
 ---
 id: 53-junhee-vogel-park
+username: huh_huh_analyst
 name: Junhee Vogel-Park
 age: 47
 occupation: Training and supervising psychoanalyst at the William Alanson White Institute

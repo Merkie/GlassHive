@@ -1,5 +1,6 @@
 ---
 id: 29-rosalind-teixeira
+username: anxious_raccoon_ink
 name: Rosalind Teixeira
 age: 37
 occupation: Freelance illustrator and picture-book author
