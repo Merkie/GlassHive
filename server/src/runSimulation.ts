@@ -28,10 +28,6 @@ export interface SimulationOptions {
   source: string;
   pool: Profile[];
   agentCount: number;
-  // How many agents are allowed to be hitting the model at once.
-  // Smaller values feel more like a real comment section trickling in;
-  // larger values blast everyone in parallel.
-  concurrency?: number;
   // Hard cap on tool-using steps per agent SESSION. In requeue/random
   // modes each agent may be re-spawned many times; this caps each
   // visit, not their lifetime activity.
@@ -80,7 +76,6 @@ export async function runSimulation(
     source,
     pool,
     agentCount,
-    concurrency = 3,
     maxStepsPerAgent = 12,
     durationSec = 90,
     mode = "requeue",
@@ -105,6 +100,9 @@ export async function runSimulation(
   const participants = sampleProfiles(pool, agentCount);
   const startedAt = Date.now();
   const deadline = startedAt + durationSec * 1000;
+  // 30% of the room is online at once, capped at 10 to keep us under
+  // OpenRouter's per-key concurrency limit no matter how big the room is.
+  const concurrency = Math.max(1, Math.min(Math.ceil(participants.length * 0.3), 10));
 
   console.log(
     `▶ simulation start: agents=${participants.length} concurrency=${concurrency} budgetSec=${durationSec} maxStepsPerAgent=${maxStepsPerAgent} mode=${mode} memory=${persistentMemory ? "persistent" : "fresh"}`

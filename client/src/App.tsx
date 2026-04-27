@@ -129,7 +129,6 @@ const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek released a new open-wei
 export default function App() {
   const [source, setSource] = createSignal(SAMPLE_SOURCE);
   const [agentCount, setAgentCount] = createSignal(10);
-  const [concurrency, setConcurrency] = createSignal(3);
   const [maxStepsPerAgent, setMaxStepsPerAgent] = createSignal(12);
   const [durationSec, setDurationSec] = createSignal(90);
   const [mode, setMode] = createSignal<"requeue" | "random">("requeue");
@@ -167,7 +166,6 @@ export default function App() {
         body: JSON.stringify({
           source: text,
           agentCount: agentCount(),
-          concurrency: concurrency(),
           maxStepsPerAgent: maxStepsPerAgent(),
           durationSec: durationSec(),
           mode: mode(),
@@ -264,24 +262,15 @@ export default function App() {
             disabled={loading()}
           />
 
-          <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <Slider
               label="Agents"
               value={agentCount()}
               min={1}
-              max={20}
+              max={50}
               onChange={setAgentCount}
               disabled={loading()}
               accent="text-orange-400"
-            />
-            <Slider
-              label="Active at once"
-              value={concurrency()}
-              min={1}
-              max={10}
-              onChange={setConcurrency}
-              disabled={loading()}
-              accent="text-sky-400"
             />
             <Slider
               label="Steps / agent"

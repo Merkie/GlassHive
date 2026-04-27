@@ -14,8 +14,7 @@ console.log(`Loaded ${profiles.length} profiles`);
 
 const requestSchema = z.object({
   source: z.string().min(1).max(20000),
-  agentCount: z.number().int().min(1).max(20).default(10),
-  concurrency: z.number().int().min(1).max(10).default(3),
+  agentCount: z.number().int().min(1).max(50).default(10),
   maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
   durationSec: z.number().int().min(10).max(600).default(90),
   mode: z.enum(["requeue", "random"]).default("requeue"),
@@ -53,7 +52,7 @@ app.post("/api/run", async (req, res) => {
   }
   const opts = parsed.data;
   console.log(
-    `▶ /api/run: agents=${opts.agentCount} concurrency=${opts.concurrency} duration=${opts.durationSec}s mode=${opts.mode} source="${opts.source.slice(0, 80).replace(/\s+/g, " ")}…"`
+    `▶ /api/run: agents=${opts.agentCount} duration=${opts.durationSec}s mode=${opts.mode} source="${opts.source.slice(0, 80).replace(/\s+/g, " ")}…"`
   );
   try {
     const result = await runSimulation({ ...opts, pool: profiles });

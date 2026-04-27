@@ -45,7 +45,7 @@
   <img src="assets/screenshot-config.svg" alt="Configuration panel" width="100%" />
 </p>
 
-<p align="center"><em>Configuration panel — agent count, concurrency, steps per agent, simulation duration, respawn mode, persistent memory.</em></p>
+<p align="center"><em>Configuration panel — agent count, steps per agent, simulation duration, respawn mode, persistent memory.</em></p>
 
 ## Stack
 
@@ -82,7 +82,7 @@ Open http://localhost:3810, paste source material, tune the sliders, and hit **O
 ## How a Run Works
 
 1. **Sample** N profiles from the 250+ persona pool — each gets a stable derived username.
-2. **Spin up** `concurrency` workers. Each pulls a profile and runs one agent session against the shared `Frontpage`.
+2. **Spin up** `ceil(N * 0.3)` workers (capped at 10). Each pulls a profile and runs one agent session against the shared `Frontpage`.
 3. **One session** = one `generateText()` with up to `maxStepsPerAgent` tool-using steps. The agent's tools mutate the shared `Frontpage` directly.
 4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or picks a fresh random participant (`random` mode), and runs again. The wall-clock deadline stops the simulation.
 5. **Persistent memory** (default on): each agent resumes its prior conversation on respawn instead of booting fresh.
@@ -102,8 +102,7 @@ Request body (Zod-validated):
 ```ts
 {
   source: string,                    // 1..20000 chars
-  agentCount?: number,               // 1..20, default 10
-  concurrency?: number,              // 1..10, default 3
+  agentCount?: number,               // 1..50, default 10 — concurrency derived as ceil(agentCount * 0.3), capped at 10
   maxStepsPerAgent?: number,         // 1..40, default 12
   durationSec?: number,              // 10..600, default 90
   mode?: "requeue" | "random",       // default "requeue"

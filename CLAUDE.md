@@ -35,7 +35,7 @@ client/                              SolidJS + Vite + Tailwind v4
     index.tsx                        render(<App />)
     app.css                          @import "tailwindcss" + dark-mode body styling
     App.tsx                          The whole UI — source textarea, sliders (agent count,
-                                     concurrency, steps/agent, simulation duration), respawn
+                                     steps/agent, simulation duration), respawn
                                      mode toggle (Requeue / Random), persistent memory toggle,
                                      SSE client, live activity feed, threaded comment renderer,
                                      JSON export.
@@ -74,9 +74,9 @@ server/                              Express + tsx
                                      [...priorMessages, RETURN_VISIT_USER] so the agent
                                      reacts to what's changed instead of repeating itself.
     runSimulation.ts                 The orchestrator. Samples N participants from the pool,
-                                     starts `concurrency` workers that loop until the
-                                     deadline. Two modes: "requeue" (round-robin queue —
-                                     each agent waits their turn) and "random" (any
+                                     then starts `ceil(N * 0.3)` workers (capped at 10) that
+                                     loop until the deadline. Two modes: "requeue" (round-robin
+                                     queue — each agent waits their turn) and "random" (any
                                      participant fills the next open slot). Persistent memory
                                      keeps a `Map<username, ModelMessage[]>` and feeds it
                                      back into runAgent on each respawn. Strips messages
@@ -102,8 +102,7 @@ server/                              Express + tsx
 ```ts
 {
   source: string,                    // 1..20000 chars
-  agentCount?: number,               // 1..20, default 10
-  concurrency?: number,              // 1..10, default 3
+  agentCount?: number,               // 1..50, default 10 — concurrency derived as ceil(agentCount * 0.3), capped at 10
   maxStepsPerAgent?: number,         // 1..40, default 12 — caps each session, not lifetime
   durationSec?: number,              // 10..600, default 90 — wall-clock budget for the whole run
   mode?: "requeue" | "random",       // default "requeue"
@@ -124,7 +123,7 @@ server/                              Express + tsx
 ## How a Run Works
 
 1. **Sample** `agentCount` profiles from the 250+ persona pool — each gets a stable derived username (`deriveUsername()` in `profiles.ts`).
-2. **Spin up** `concurrency` workers. Each worker pulls a profile and runs `runAgent()` against the shared `Frontpage`.
+2. **Spin up** `ceil(agentCount * 0.3)` workers (capped at 10). Each worker pulls a profile and runs `runAgent()` against the shared `Frontpage`.
 3. **One session** = one `generateText()` with up to `maxStepsPerAgent` tool-using steps. The agent's tools mutate the shared `Frontpage` directly. ActivityEvents are emitted as a side effect of every state change.
 4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or just picks a fresh random participant (`random` mode), and runs again. **The wall-clock deadline is what stops the simulation** — workers loop until `Date.now() >= deadline`. Per-agent step limits cap each visit, not the whole run.
 5. **Persistent memory** (default on): the runner keeps a per-username `ModelMessage[]` and passes it as `priorMessages` on the next respawn. The agent appends a "you're back, what's new?" user turn so the model fetches the latest thread state instead of repeating itself.
