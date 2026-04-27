@@ -138,8 +138,8 @@ let _profiles: Profile[] | null = null;
 export function loadProfiles(): Profile[] {
   if (_profiles) return _profiles;
   const files = readdirSync(PROFILES_DIR)
-    .filter((f) => /^\d{2}-.+\.md$/.test(f))
-    .sort();
+    .filter((f) => /^\d+-.+\.md$/.test(f))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const seenUsernames = new Set<string>();
   const profiles: Profile[] = [];
   for (const file of files) {
