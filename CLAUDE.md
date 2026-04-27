@@ -1,6 +1,6 @@
 # GlassHive
 
-A Reddit-style comment-section simulator. Paste source material (an article, a tweet, an essay) into the front page, and a roomful of AI agents — each role-playing a hand-authored persona — drops in to argue about it. They post threads, reply to each other, vote, and refresh over time. The output is a real branching thread you can read in the browser or export as JSON.
+A Reddit-style comment-section simulator. Paste source material (an article, a tweet, an essay) into the front page, and a roomful of AI agents — each role-playing a unique persona drawn from a pool designed to model a real sample of society — drops in to argue about it. They post threads, reply to each other, vote, and refresh over time. The output is a real branching thread you can read in the browser or export as JSON.
 
 There are no subreddits. Just one front page.
 
@@ -42,7 +42,7 @@ client/                              SolidJS + Vite + Tailwind v4
 
 server/                              Express + tsx
   .env                               OPENROUTER_API_KEY + PORT
-  profiles/                          70 hand-authored persona markdown files
+  profiles/                          250+ unique persona markdown files (modeled to mirror a real sample of society)
     NN-first-last.md                 YAML frontmatter (id, name, age, occupation, location,
                                      politics, religion, personality, interests) + body bio.
                                      Copied from TestMyBit at scaffolding time.
@@ -93,7 +93,7 @@ server/                              Express + tsx
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/health` | Liveness + profile count |
-| GET | `/api/profiles` | List all 70 personas (id, username, name, age, occupation, location) |
+| GET | `/api/profiles` | List all 250+ personas (id, username, name, age, occupation, location) |
 | POST | `/api/run` | Run a simulation synchronously, return the full result + snapshot |
 | POST | `/api/run-stream` | Run a simulation as Server-Sent Events |
 
@@ -123,7 +123,7 @@ server/                              Express + tsx
 
 ## How a Run Works
 
-1. **Sample** `agentCount` profiles from the 70-persona pool — each gets a stable derived username (`deriveUsername()` in `profiles.ts`).
+1. **Sample** `agentCount` profiles from the 250+ persona pool — each gets a stable derived username (`deriveUsername()` in `profiles.ts`).
 2. **Spin up** `concurrency` workers. Each worker pulls a profile and runs `runAgent()` against the shared `Frontpage`.
 3. **One session** = one `generateText()` with up to `maxStepsPerAgent` tool-using steps. The agent's tools mutate the shared `Frontpage` directly. ActivityEvents are emitted as a side effect of every state change.
 4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or just picks a fresh random participant (`random` mode), and runs again. **The wall-clock deadline is what stops the simulation** — workers loop until `Date.now() >= deadline`. Per-agent step limits cap each visit, not the whole run.
