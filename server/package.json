@@ -1,0 +1,26 @@
+{
+  "name": "glasshive-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "2.3.3",
+    "ai": "6.0.160",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.15.0",
+    "tsx": "^4.7.3",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.0"
+  }
+}

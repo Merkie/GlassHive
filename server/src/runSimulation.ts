@@ -1,0 +1,198 @@
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import type { ModelMessage } from "ai";
+import { Frontpage, type FrontpageSnapshot } from "./frontpage.js";
+import { runAgent, type AgentRunResult } from "./agent.js";
+
+export type PublicAgentResult = Omit<AgentRunResult, "messages">;
+import type { ActivityEvent } from "./tools.js";
+import { sampleProfiles, type Profile } from "./profiles.js";
+
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+function getOpenRouter() {
+  if (_openrouter) return _openrouter;
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error("OPENROUTER_API_KEY environment variable is required");
+  }
+  _openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
+  return _openrouter;
+}
+
+// 'requeue' rotates through participants in order — each agent only
+// reappears after the others have had a turn. Reads like real reddit:
+// people drop in, post, come back later when something new is on top.
+// 'random' picks a participant at random for every open slot — chaotic
+// and uneven; loud users may post 5x while others post once.
+export type SimulationMode = "requeue" | "random";
+
+export interface SimulationOptions {
+  source: string;
+  pool: Profile[];
+  agentCount: number;
+  // How many agents are allowed to be hitting the model at once.
+  // Smaller values feel more like a real comment section trickling in;
+  // larger values blast everyone in parallel.
+  concurrency?: number;
+  // Hard cap on tool-using steps per agent SESSION. In requeue/random
+  // modes each agent may be re-spawned many times; this caps each
+  // visit, not their lifetime activity.
+  maxStepsPerAgent?: number;
+  // Wall-clock budget for the whole simulation, in seconds. The
+  // simulation runs UNTIL this deadline — agents are re-spawned
+  // (per `mode`) until time runs out.
+  durationSec?: number;
+  mode?: SimulationMode;
+  // When true (default), every time an agent is re-spawned it picks
+  // up its previous conversation history — including its own past
+  // tool calls and replies — so it doesn't repeat itself and can
+  // react to what's changed since it logged off. When false, every
+  // spawn is a fresh boot from the system prompt: cheaper on input
+  // tokens but the agent has no idea what it already said.
+  persistentMemory?: boolean;
+  modelId?: string;
+  onActivity?: (event: ActivityEvent) => void;
+  onAgentDone?: (result: PublicAgentResult) => void;
+}
+
+export interface SimulationResult {
+  source: string;
+  participants: Array<{
+    username: string;
+    name: string;
+    occupation: string;
+    location: string;
+  }>;
+  agentResults: PublicAgentResult[];
+  snapshot: FrontpageSnapshot;
+  totals: {
+    costUsd: number;
+    inputTokens: number;
+    outputTokens: number;
+    posts: number;
+    comments: number;
+    elapsedMs: number;
+  };
+}
+
+export async function runSimulation(
+  opts: SimulationOptions
+): Promise<SimulationResult> {
+  const {
+    source,
+    pool,
+    agentCount,
+    concurrency = 3,
+    maxStepsPerAgent = 12,
+    durationSec = 90,
+    mode = "requeue",
+    persistentMemory = true,
+    modelId = "google/gemini-3.1-flash-lite-preview",
+    onActivity,
+    onAgentDone,
+  } = opts;
+
+  if (!source.trim()) throw new Error("source must not be empty");
+  if (agentCount < 1) throw new Error("agentCount must be at least 1");
+  if (pool.length < agentCount) {
+    throw new Error(
+      `pool has ${pool.length} profiles but ${agentCount} were requested`
+    );
+  }
+
+  const openrouter = getOpenRouter();
+  const model = openrouter.chat(modelId);
+
+  const fp = new Frontpage();
+  const participants = sampleProfiles(pool, agentCount);
+  const startedAt = Date.now();
+  const deadline = startedAt + durationSec * 1000;
+
+  console.log(
+    `▶ simulation start: agents=${participants.length} concurrency=${concurrency} budgetSec=${durationSec} maxStepsPerAgent=${maxStepsPerAgent} mode=${mode} memory=${persistentMemory ? "persistent" : "fresh"}`
+  );
+  for (const p of participants) {
+    console.log(`  · u/${p.username} (${p.name}, ${p.occupation})`);
+  }
+
+  const queue: Profile[] = [...participants];
+  const results: PublicAgentResult[] = [];
+  // Per-username conversation state. Persists across re-spawns when
+  // `persistentMemory` is on; ignored when off.
+  const memory = new Map<string, ModelMessage[]>();
+
+  // Round-robin queue for requeue mode. The loop never naturally ends —
+  // it's the deadline that stops us. If a worker pops an empty queue
+  // (transient: another worker is mid-flight and hasn't requeued yet)
+  // it yields and retries.
+  async function worker() {
+    while (Date.now() < deadline) {
+      let profile: Profile | undefined;
+      if (mode === "random") {
+        profile = participants[Math.floor(Math.random() * participants.length)];
+      } else {
+        profile = queue.shift();
+        if (!profile) {
+          await new Promise((r) => setTimeout(r, 100));
+          continue;
+        }
+      }
+      const priorMessages = persistentMemory ? memory.get(profile.username) : undefined;
+      const fullResult = await runAgent({
+        profile,
+        source,
+        fp,
+        model,
+        maxSteps: maxStepsPerAgent,
+        deadline,
+        onActivity,
+        priorMessages,
+      });
+      if (persistentMemory) memory.set(profile.username, fullResult.messages);
+      // Strip the full message log from anything we expose externally —
+      // it can be hundreds of KB per agent and clients never need it.
+      const { messages: _omit, ...result } = fullResult;
+      results.push(result);
+      onAgentDone?.(result);
+      const status = result.errored ? `ERR ${result.error}` : `${result.steps} steps`;
+      console.log(
+        `  ← u/${profile.username} done (${status}, $${result.costUsd.toFixed(6)})`
+      );
+      if (mode === "requeue") queue.push(profile);
+    }
+  }
+
+  const workerCount = Math.max(1, Math.min(concurrency, participants.length));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+  const snapshot = fp.snapshot();
+  const totals = {
+    costUsd: results.reduce((s, r) => s + r.costUsd, 0),
+    inputTokens: results.reduce((s, r) => s + r.tokens.input, 0),
+    outputTokens: results.reduce((s, r) => s + r.tokens.output, 0),
+    posts: snapshot.posts.length,
+    comments: snapshot.posts.reduce((s, p) => s + countComments(p.comments), 0),
+    elapsedMs: Date.now() - startedAt,
+  };
+
+  console.log(
+    `→ simulation done: ${totals.posts} posts, ${totals.comments} comments, $${totals.costUsd.toFixed(4)}, ${totals.elapsedMs}ms`
+  );
+
+  return {
+    source,
+    participants: participants.map((p) => ({
+      username: p.username,
+      name: p.name,
+      occupation: p.occupation,
+      location: p.location,
+    })),
+    agentResults: results,
+    snapshot,
+    totals,
+  };
+}
+
+function countComments(nodes: { replies: any[] }[]): number {
+  let n = 0;
+  for (const node of nodes) n += 1 + countComments(node.replies);
+  return n;
+}
