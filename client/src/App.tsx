@@ -76,7 +76,7 @@ function fmtUsd(n: number): string {
 }
 
 function karmaColor(k: number): string {
-  if (k > 0) return "text-cyan-400";
+  if (k > 0) return "text-orange-400";
   if (k < 0) return "text-rose-400";
   return "text-neutral-500";
 }
@@ -227,25 +227,25 @@ export default function App() {
               <svg viewBox="0 0 64 64" class="h-9 w-9 self-center" aria-hidden="true">
                 <defs>
                   <linearGradient id="hiveGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#22d3ee" />
-                    <stop offset="100%" stop-color="#0ea5e9" />
+                    <stop offset="0%" stop-color="#fb923c" />
+                    <stop offset="100%" stop-color="#ea580c" />
                   </linearGradient>
                 </defs>
                 <polygon
                   points="32,4 56,18 56,46 32,60 8,46 8,18"
                   fill="url(#hiveGrad)"
                   opacity="0.18"
-                  stroke="#22d3ee"
+                  stroke="#fb923c"
                   stroke-width="2"
                 />
                 <polygon
                   points="32,18 46,26 46,42 32,50 18,42 18,26"
                   fill="none"
-                  stroke="#22d3ee"
+                  stroke="#fb923c"
                   stroke-width="2"
                 />
               </svg>
-              <span>Glass<span class="text-cyan-400">Hive</span></span>
+              <span>Glass<span class="text-orange-500">Hive</span></span>
             </h1>
             <p class="mt-1 text-sm text-neutral-400">
               Drop in source material. Watch a roomful of AI agents argue about it
@@ -257,7 +257,7 @@ export default function App() {
         <section class="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
           <label class="text-sm font-medium text-neutral-300">Source material</label>
           <textarea
-            class="mt-2 min-h-[160px] w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/70 p-3 font-mono text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-cyan-500"
+            class="mt-2 min-h-[160px] w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/70 p-3 font-mono text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-orange-500"
             placeholder="Paste a news article, a tweet, an essay, a Reddit post — anything for the agents to react to."
             value={source()}
             onInput={(e) => setSource(e.currentTarget.value)}
@@ -272,7 +272,7 @@ export default function App() {
               max={20}
               onChange={setAgentCount}
               disabled={loading()}
-              accent="text-cyan-400"
+              accent="text-orange-400"
             />
             <Slider
               label="Active at once"
@@ -355,7 +355,7 @@ export default function App() {
               type="button"
               onClick={submit}
               disabled={loading() || !source().trim()}
-              class="rounded-lg bg-cyan-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+              class="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading() ? "The room is talking…" : "Open the thread"}
             </button>
@@ -371,7 +371,7 @@ export default function App() {
         <Show when={loading() || activity().length > 0}>
           <section class="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 font-mono text-xs text-neutral-400">
             <div class="mb-2 flex flex-wrap gap-4">
-              <span>posts: <span class="text-cyan-400">{stats().posts}</span></span>
+              <span>posts: <span class="text-orange-400">{stats().posts}</span></span>
               <span>comments: <span class="text-fuchsia-400">{stats().comments}</span></span>
               <span>votes: <span class="text-emerald-400">{stats().votes}</span></span>
               <span>errors: <span class="text-rose-400">{stats().errors}</span></span>
@@ -487,7 +487,7 @@ function ModeButton(props: {
       disabled={props.disabled}
       class={`flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-40 ${
         props.active
-          ? "border-cyan-500 bg-cyan-500/10 text-neutral-100"
+          ? "border-orange-500 bg-orange-500/10 text-neutral-100"
           : "border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200"
       }`}
     >
@@ -509,7 +509,7 @@ function Toggle(props: {
       onClick={props.onToggle}
       disabled={props.disabled}
       class={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-        props.on ? "bg-cyan-500" : "bg-neutral-700"
+        props.on ? "bg-orange-500" : "bg-neutral-700"
       }`}
     >
       <span
@@ -546,7 +546,7 @@ function Slider(props: {
         value={props.value}
         onInput={(e) => props.onChange(Number.parseInt(e.currentTarget.value, 10))}
         disabled={props.disabled}
-        class="mt-2 w-full accent-cyan-500"
+        class="mt-2 w-full accent-orange-500"
       />
       <div class="mt-1 flex justify-between text-xs text-neutral-500">
         <span>{props.min}</span>

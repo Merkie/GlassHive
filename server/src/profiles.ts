@@ -15,7 +15,7 @@ export interface Profile {
   politics: string;
   religion: string;
   personality: string;
-  humor: string;
+  interests: string;
   bio: string;
   raw: string;
 }
@@ -41,7 +41,7 @@ function parseProfile(filename: string, content: string): Profile {
     "politics",
     "religion",
     "personality",
-    "humor",
+    "interests",
   ] as const;
   for (const key of required) {
     if (!fields[key]) {
@@ -64,7 +64,7 @@ function parseProfile(filename: string, content: string): Profile {
     politics: fields.politics,
     religion: fields.religion,
     personality: fields.personality,
-    humor: fields.humor,
+    interests: fields.interests,
     bio: body.trim(),
     raw: content,
   };

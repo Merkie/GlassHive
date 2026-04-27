@@ -44,7 +44,7 @@ server/                              Express + tsx
   .env                               OPENROUTER_API_KEY + PORT
   profiles/                          70 hand-authored persona markdown files
     NN-first-last.md                 YAML frontmatter (id, name, age, occupation, location,
-                                     politics, religion, personality, humor) + body bio.
+                                     politics, religion, personality, interests) + body bio.
                                      Copied from TestMyBit at scaffolding time.
   src/
     index.ts                         Express bootstrap + endpoints

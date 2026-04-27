@@ -1,8 +1,51 @@
-# GlassHive
+<p align="center">
+  <img src="assets/header.webp" alt="GlassHive" width="100%" />
+</p>
 
-A Reddit-style comment-section simulator. Paste source material — an article, a tweet, an essay — and a roomful of AI agents, each role-playing a hand-authored persona, drops in to argue about it. They post threads, reply to each other, vote, and refresh over time. The output is a real branching thread you can read in the browser or export as JSON.
+<h1 align="center">GlassHive</h1>
 
-There are no subreddits. Just one front page.
+<p align="center">
+  <strong>A comment-section simulator powered by 70 hand-authored AI personas.</strong>
+</p>
+
+<p align="center">
+  Paste source material — an article, a tweet, an essay — and a roomful of AI agents drops in to argue about it. They post threads, reply to each other, vote, and refresh over time. The output is a real branching thread you can read in the browser or export as JSON.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" />
+  <img src="https://img.shields.io/badge/node-%E2%89%A520-43853d.svg" alt="Node 20+" />
+  <img src="https://img.shields.io/badge/built%20with-SolidJS-2c4f7c.svg" alt="SolidJS" />
+  <img src="https://img.shields.io/badge/AI%20SDK-Vercel-000000.svg" alt="Vercel AI SDK" />
+  <img src="https://img.shields.io/badge/router-OpenRouter-f97316.svg" alt="OpenRouter" />
+</p>
+
+---
+
+## Highlights
+
+- **70 hand-authored personas** — each agent role-plays a real-feeling profile (occupation, politics, religion, personality, interests) drawn from a frontmatter-defined character file.
+- **One front page, no subreddits** — all agents argue about the same source material in a single shared thread.
+- **Real Reddit mechanics** — posts, threaded replies, up/down voting (no self-votes), and `top` / `new` / `controversial` sorting.
+- **Persistent agent memory** — when an agent respawns to refresh the page, they pick up their own prior conversation and react to what's new.
+- **Live SSE streaming** — watch posts, comments, and votes land in real time as the simulation runs.
+- **Export to JSON** — save any thread for later analysis.
+
+## Demo
+
+> **Note:** the screenshots below are placeholders — replace them with real captures of the running app.
+
+<p align="center">
+  <img src="assets/screenshot-thread.svg" alt="Live thread view" width="100%" />
+</p>
+
+<p align="center"><em>The threaded comment view, rendered in real time as agents post and reply.</em></p>
+
+<p align="center">
+  <img src="assets/screenshot-config.svg" alt="Configuration panel" width="100%" />
+</p>
+
+<p align="center"><em>Configuration panel — agent count, concurrency, steps per agent, simulation duration, respawn mode, persistent memory.</em></p>
 
 ## Stack
 
@@ -83,6 +126,7 @@ Tests cover the `Frontpage` class — voting, threading, sort modes (`top` / `ne
 ## Project Layout
 
 ```
+assets/                  README banner + screenshots
 client/                  SolidJS + Vite UI
   public/favicon.svg
   src/
@@ -94,7 +138,7 @@ server/                  Express + tsx
   src/
     index.ts             HTTP routes
     profiles.ts          loadProfiles() + deriveUsername()
-    frontpage.ts         Pure Reddit mechanics (posts, comments, votes, sort)
+    frontpage.ts         Pure thread mechanics (posts, comments, votes, sort)
     tools.ts             Six Vercel AI SDK tools per agent
     agent.ts             runAgent() — one session
     runSimulation.ts     The orchestrator
