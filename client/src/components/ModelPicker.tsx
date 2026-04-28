@@ -1,7 +1,5 @@
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
 import {
-  TbOutlineCpu,
-  TbOutlineChevronDown,
   TbOutlineX,
   TbOutlineSearch,
   TbOutlineRefresh,
@@ -21,7 +19,8 @@ interface ModelSummary {
 interface Props {
   value: string | null;
   onChange: (id: string | null) => void;
-  disabled?: boolean;
+  open: boolean;
+  onClose: () => void;
 }
 
 const PAGE_LIMIT = 30;
@@ -53,7 +52,6 @@ function priceTierColor(out: number): string {
 }
 
 export default function ModelPicker(props: Props) {
-  const [open, setOpen] = createSignal(false);
   const [models, setModels] = createSignal<ModelSummary[]>([]);
   const [search, setSearch] = createSignal("");
   const [nextOffset, setNextOffset] = createSignal<number | null>(0);
@@ -97,7 +95,7 @@ export default function ModelPicker(props: Props) {
 
   // Lazy: fetch the first page the first time the modal opens.
   createEffect(() => {
-    if (open() && !loadedOnce) {
+    if (props.open && !loadedOnce) {
       loadedOnce = true;
       void fetchPage({ offset: 0, search: "", append: false });
     }
@@ -105,9 +103,9 @@ export default function ModelPicker(props: Props) {
 
   // Esc closes the modal.
   createEffect(() => {
-    if (!open()) return;
+    if (!props.open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") props.onClose();
     };
     window.addEventListener("keydown", handler);
     onCleanup(() => window.removeEventListener("keydown", handler));
@@ -136,38 +134,23 @@ export default function ModelPicker(props: Props) {
 
   const select = (id: string | null) => {
     props.onChange(id);
-    setOpen(false);
+    props.onClose();
   };
 
-  const triggerLabel = () => props.value ?? "Default model";
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={props.disabled}
-        title="Pick OpenRouter model"
-        class="inline-flex max-w-[260px] items-center gap-1.5 whitespace-nowrap rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+    <Show when={props.open}>
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) props.onClose();
+        }}
       >
-        <TbOutlineCpu size={14} class="shrink-0 text-neutral-500" />
-        <span class="truncate font-mono text-[11px]">{triggerLabel()}</span>
-        <TbOutlineChevronDown size={14} class="shrink-0 text-neutral-600" />
-      </button>
-
-      <Show when={open()}>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
           <div class="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
             <div class="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
               <h2 class="text-base font-semibold text-neutral-100">Pick a model</h2>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => props.onClose()}
                 class="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-900 hover:text-neutral-200"
                 aria-label="Close"
               >
@@ -315,7 +298,7 @@ export default function ModelPicker(props: Props) {
               <button
                 type="button"
                 class="rounded-lg border border-neutral-800 px-4 py-2 text-sm text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-900"
-                onClick={() => setOpen(false)}
+                onClick={() => props.onClose()}
               >
                 Cancel
               </button>
@@ -323,6 +306,5 @@ export default function ModelPicker(props: Props) {
           </div>
         </div>
       </Show>
-    </>
   );
 }

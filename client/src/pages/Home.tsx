@@ -13,15 +13,15 @@ import {
   TbOutlineArrowsShuffle,
   TbOutlineBrain,
   TbOutlineHeartbeat,
-  TbOutlineKey,
+  TbOutlineCpu,
 } from "solid-icons/tb";
 import { formatDuration } from "../lib/format";
 import Logo from "../components/Logo";
 import ActivityFeed from "../components/ActivityFeed";
 import KeyGate from "../components/KeyGate";
-import ModelPicker from "../components/ModelPicker";
+import SettingsModal from "../components/SettingsModal";
 import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
-import { getStoredModel, setStoredModel } from "../lib/modelStore";
+import { DEFAULT_MODEL_ID, getStoredModel, setStoredModel } from "../lib/modelStore";
 import { useRunSimulation } from "../hooks/useRunSimulation";
 
 const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek has released its flagship V4 model series, featuring a massive 1-million token context window and performance that trails GPT-5.5 by only a few months of development. Dropped overnight on Hugging Face under a permissive MIT license, the 1.6-trillion parameter V4-Pro model delivers frontier-class reasoning at roughly 1/30th the API cost of its Western counterparts. Silicon Valley is reportedly scrambling as the release fundamentally resets the economics of the global AI race.`;
@@ -85,20 +85,15 @@ export default function Home() {
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <ModelPicker value={modelId()} onChange={setModelId} disabled={loading()} />
             <Show when={keyBlob()}>
               {(blob) => (
-                <button
-                  type="button"
-                  onClick={resetKey}
+                <SettingsModal
+                  keyBlob={blob()}
+                  modelId={modelId()}
+                  onChangeModel={setModelId}
+                  onResetKey={resetKey}
                   disabled={loading()}
-                  class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
-                  title="Clear saved key and re-enter"
-                >
-                  <TbOutlineKey size={14} class="text-neutral-500" />
-                  {blob().mode === "admin" ? "Host admin" : "Your OpenRouter key"}
-                  <span class="text-neutral-600">· change</span>
-                </button>
+                />
               )}
             </Show>
           </div>
@@ -235,7 +230,14 @@ export default function Home() {
               </Show>
             </div>
 
-            <div class="mt-5 flex justify-end">
+            <div class="mt-5 flex items-center justify-between gap-4">
+              <span
+                class="inline-flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-neutral-500"
+                title="Model used for this run"
+              >
+                <TbOutlineCpu size={14} class="shrink-0 text-neutral-600" />
+                <span class="truncate">{modelId() ?? DEFAULT_MODEL_ID}</span>
+              </span>
               <button
                 type="button"
                 onClick={submit}

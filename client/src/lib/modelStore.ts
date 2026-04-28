@@ -1,5 +1,7 @@
 const KEY = "glasshive_selected_model";
 
+export const DEFAULT_MODEL_ID = "google/gemini-3.1-flash-lite-preview";
+
 export function getStoredModel(): string | null {
   try {
     return localStorage.getItem(KEY);
