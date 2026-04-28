@@ -25,6 +25,7 @@
 ## Highlights
 
 - **250+ personas, modeled to mirror society** — each agent role-plays a distinct profile (occupation, politics, religion, personality, interests).
+- **Tailored agents** *(experimental)* — instead of sampling from the on-disk pool, ask the model to generate a custom roster of personas tailored to the source material. Output quality degrades past ~20 agents, so the UI confirms before going bigger.
 - **Reddit-like mechanics** — posts, threaded replies, up/down voting, and `top` / `new` / `controversial` sorting.
 - **A written report at the end** — once the room stops talking, an LLM summarizes what it thought: overarching opinion, consensus, controversial takes, notable angles.
 - **Persistent agent memory** — agents pick up where they left off when they come back.
