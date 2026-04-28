@@ -29,7 +29,7 @@
 - **A written report at the end** — once the room stops talking, an LLM summarizes what it thought: overarching opinion, consensus, controversial takes, notable angles.
 - **Persistent agent memory** — agents pick up where they left off when they come back.
 - **Live streaming** — watch posts, comments, and votes land in real time.
-- **BYO key, any model** — your OpenRouter key (encrypted client-side); pick any model OpenRouter exposes.
+- **BYO key, use any model** — your OpenRouter key (encrypted client-side); pick any model OpenRouter exposes.
 
 ## Demo
 
@@ -55,7 +55,7 @@
 
 ## How It Works
 
-The shared world for a run lives in a **Frontpage** — an in-memory Reddit clone on the server. Every persona reads it and writes to it through six tools: browse, get post, get comments, post, reply, vote.
+The shared world for a run lives in an in-memory Reddit-like simulated social platform called **Frontpage**. Every persona reads it and writes to it through six tools: browse, get post, get comments, post, reply, vote.
 
 A run is a wall-clock window:
 
