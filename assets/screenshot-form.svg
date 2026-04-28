@@ -2,7 +2,7 @@
   <rect width="1600" height="900" fill="#0b0b0f"/>
   <rect x="40" y="40" width="1520" height="820" rx="16" fill="none" stroke="#262626" stroke-width="2" stroke-dasharray="8 8"/>
   <text x="800" y="420" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="40" fill="#737373">screenshot placeholder</text>
-  <text x="800" y="470" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" fill="#525252">configuration panel</text>
-  <text x="800" y="510" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#404040">replace with assets/screenshot-config.png</text>
+  <text x="800" y="470" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" fill="#525252">run configuration form</text>
+  <text x="800" y="510" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#404040">replace with assets/screenshot-form.png</text>
   <polygon points="800,640 820,650 820,670 800,680 780,670 780,650" fill="none" stroke="#f97316" stroke-width="2" opacity="0.5"/>
 </svg>
