@@ -15,6 +15,7 @@ export type UseRunSimulationOptions = {
 
 export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
   const [loading, setLoading] = createSignal(false);
+  const [reporting, setReporting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [activity, setActivity] = createSignal<Activity[]>([]);
   const [doneAgents, setDoneAgents] = createSignal<AgentResult[]>([]);
@@ -63,9 +64,11 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
         ]);
         return;
       case "report-start":
+        setReporting(true);
         setActivity((arr) => [...arr, { kind: "phase", label: "Writing report…", tone: "info" }]);
         return;
       case "report-done":
+        setReporting(false);
         if (event.data.markdown) {
           setActivity((arr) => [...arr, { kind: "phase", label: "Report ready", tone: "success" }]);
         } else {
@@ -91,6 +94,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
 
   const run = async (input: RunStreamInput) => {
     setLoading(true);
+    setReporting(false);
     setError(null);
     setActivity([{ kind: "phase", label: "Starting simulation…", tone: "start" }]);
     setDoneAgents([]);
@@ -118,6 +122,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
     } finally {
       stopTimer();
       setLoading(false);
+      setReporting(false);
     }
   };
 
@@ -125,6 +130,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
 
   return {
     loading,
+    reporting,
     error,
     activity,
     doneAgents,

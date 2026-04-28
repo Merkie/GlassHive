@@ -63,11 +63,20 @@ export default function Home() {
     setKeyBlob(null);
   };
 
-  const { loading, error, activity, doneAgents, logCollapsed, setLogCollapsed, remainingSec, run } =
-    useRunSimulation({
-      onSaved: (id) => navigate(`/v/${id}`),
-      onUnauthorized: resetKey,
-    });
+  const {
+    loading,
+    reporting,
+    error,
+    activity,
+    doneAgents,
+    logCollapsed,
+    setLogCollapsed,
+    remainingSec,
+    run,
+  } = useRunSimulation({
+    onSaved: (id) => navigate(`/v/${id}`),
+    onUnauthorized: resetKey,
+  });
 
   const submit = () => {
     const text = source().trim();
@@ -274,7 +283,11 @@ export default function Home() {
                 <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
                   <TbOutlineLoader2 size={18} class="animate-spin" />
                 </Show>
-                {loading() ? "The room is talking…" : "Generate"}
+                {loading()
+                  ? reporting()
+                    ? "Finishing up…"
+                    : "The room is talking…"
+                  : "Generate"}
               </button>
             </div>
           </section>
