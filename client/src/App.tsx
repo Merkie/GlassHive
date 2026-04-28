@@ -540,7 +540,7 @@ export default function App() {
                   class="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800"
                 >
                   <TbOutlineDownload size={14} />
-                  Export MD
+                  Export Markdown
                 </button>
               </div>
               <div
