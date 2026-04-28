@@ -23,7 +23,6 @@ import {
   TbOutlineBrain,
   TbOutlineCircleCheck,
   TbOutlinePencil,
-  TbOutlineChevronDown,
 } from "solid-icons/tb";
 
 type Post = {
@@ -522,7 +521,7 @@ export default function App() {
             onClick={() => setLogCollapsed(false)}
             class="mt-8 inline-flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-neutral-300"
           >
-            <TbOutlineChevronDown size={14} />
+            <TbOutlineChevronRight size={14} />
             Show activity log ({activity().length} events)
           </button>
         </Show>
