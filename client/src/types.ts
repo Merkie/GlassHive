@@ -83,7 +83,7 @@ export type Activity =
       result: string;
     }
   | { kind: "tool-error"; tool: string; username: string; error: string }
-  | { kind: "phase"; label: string; tone: "info" | "success" | "start" };
+  | { kind: "phase"; label: string; tone: "info" | "success" | "start" | "error" };
 
 export type RunRecord = {
   id: string;

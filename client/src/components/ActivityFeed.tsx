@@ -45,13 +45,23 @@ export default function ActivityFeed(props: {
         <section class="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 font-mono text-xs text-neutral-400">
           <div class="mb-2 flex flex-wrap items-center gap-4">
             <Show when={props.remainingSec !== null}>
-              <span class="inline-flex items-center gap-1.5">
-                <TbOutlineClock size={14} class="text-sky-400" />
-                <span class="text-sky-400 tabular-nums">
-                  {formatDuration(props.remainingSec!)}
+              <Show
+                when={props.remainingSec! > 0}
+                fallback={
+                  <span class="inline-flex animate-pulse items-center gap-1.5">
+                    <TbOutlineClock size={14} class="text-sky-400" />
+                    <span class="text-sky-400">Waiting…</span>
+                  </span>
+                }
+              >
+                <span class="inline-flex items-center gap-1.5">
+                  <TbOutlineClock size={14} class="text-sky-400" />
+                  <span class="text-sky-400 tabular-nums">
+                    {formatDuration(props.remainingSec!)}
+                  </span>
+                  <span>remaining</span>
                 </span>
-                <span>remaining</span>
-              </span>
+              </Show>
             </Show>
             <span class="inline-flex items-center gap-1.5">
               <TbOutlineMessagePlus size={14} class="text-orange-400" />

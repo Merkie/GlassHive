@@ -20,7 +20,9 @@ import { formatDuration } from "../lib/format";
 import Logo from "../components/Logo";
 import ActivityFeed from "../components/ActivityFeed";
 import KeyGate from "../components/KeyGate";
+import ModelPicker from "../components/ModelPicker";
 import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
+import { getStoredModel, setStoredModel } from "../lib/modelStore";
 
 const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek released a new open-weights model that scores within 2 points of GPT-5 on standard benchmarks while costing roughly 1/30th to train. The release dropped overnight on Hugging Face with a permissive license. Western labs are reportedly scrambling to respond.`;
 
@@ -36,8 +38,14 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = createSignal(false);
 
   const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
+  const [modelId, setModelIdInternal] = createSignal<string | null>(getStoredModel());
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
+
+  const setModelId = (id: string | null) => {
+    setModelIdInternal(id);
+    setStoredModel(id);
+  };
 
   const resetKey = () => {
     clearStoredKey();
@@ -96,6 +104,7 @@ export default function Home() {
           durationSec: durationSec(),
           mode: mode(),
           persistentMemory: persistentMemory(),
+          ...(modelId() ? { modelId: modelId() } : {}),
         }),
       });
       if (res.status === 401) {
@@ -192,21 +201,28 @@ export default function Home() {
               in a fake comment section.
             </p>
           </div>
-          <Show when={keyBlob()}>
-            {(blob) => (
-              <button
-                type="button"
-                onClick={resetKey}
-                disabled={loading()}
-                class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
-                title="Clear saved key and re-enter"
-              >
-                <TbOutlineKey size={14} class="text-neutral-500" />
-                {blob().mode === "admin" ? "Host admin" : "Your OpenRouter key"}
-                <span class="text-neutral-600">· change</span>
-              </button>
-            )}
-          </Show>
+          <div class="flex items-center gap-2">
+            <ModelPicker
+              value={modelId()}
+              onChange={setModelId}
+              disabled={loading()}
+            />
+            <Show when={keyBlob()}>
+              {(blob) => (
+                <button
+                  type="button"
+                  onClick={resetKey}
+                  disabled={loading()}
+                  class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Clear saved key and re-enter"
+                >
+                  <TbOutlineKey size={14} class="text-neutral-500" />
+                  {blob().mode === "admin" ? "Host admin" : "Your OpenRouter key"}
+                  <span class="text-neutral-600">· change</span>
+                </button>
+              )}
+            </Show>
+          </div>
         </header>
 
         <Show when={!keyBlob()}>

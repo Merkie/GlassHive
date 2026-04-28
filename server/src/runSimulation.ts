@@ -117,12 +117,22 @@ export async function runSimulation(
   // `persistentMemory` is on; ignored when off.
   const memory = new Map<string, ModelMessage[]>();
 
+  // Circuit breaker: if a model errors instantly on every call (e.g. the
+  // user picks one that doesn't support tool calling), workers would spin
+  // for the whole budget and rack up thousands of failed billed requests.
+  // After this many consecutive errors across all workers we abort.
+  const MAX_CONSECUTIVE_ERRORS = 5;
+  const ERROR_BACKOFF_MS = 1000;
+  let consecutiveErrors = 0;
+  let aborted = false;
+  let abortReason = "";
+
   // Round-robin queue for requeue mode. The loop never naturally ends —
   // it's the deadline that stops us. If a worker pops an empty queue
   // (transient: another worker is mid-flight and hasn't requeued yet)
   // it yields and retries.
   async function worker() {
-    while (Date.now() < deadline) {
+    while (Date.now() < deadline && !aborted) {
       let profile: Profile | undefined;
       if (mode === "random") {
         profile = participants[Math.floor(Math.random() * participants.length)];
@@ -155,6 +165,30 @@ export async function runSimulation(
         `  ← u/${profile.username} done (${status}, $${result.costUsd.toFixed(6)})`
       );
       if (mode === "requeue") queue.push(profile);
+
+      if (result.errored) {
+        consecutiveErrors++;
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          aborted = true;
+          abortReason = result.error ?? "model errored repeatedly";
+          onActivity?.({
+            kind: "phase",
+            label: `Stopped: ${MAX_CONSECUTIVE_ERRORS} consecutive errors — ${abortReason}`,
+            tone: "error",
+          });
+          break;
+        }
+        // Back off so a model that fails instantly can't burn the
+        // entire budget at zero latency.
+        const remainingMs = deadline - Date.now();
+        if (remainingMs > 0) {
+          await new Promise((r) =>
+            setTimeout(r, Math.min(ERROR_BACKOFF_MS, remainingMs))
+          );
+        }
+      } else {
+        consecutiveErrors = 0;
+      }
     }
   }
 

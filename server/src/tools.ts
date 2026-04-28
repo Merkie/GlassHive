@@ -23,7 +23,7 @@ export type ActivityEvent =
   // Synthesized milestone markers — not emitted by tools but pushed by the
   // run handler so the saved activity log replays the same phase banners
   // the user saw live.
-  | { kind: "phase"; label: string; tone: "info" | "success" | "start" };
+  | { kind: "phase"; label: string; tone: "info" | "success" | "start" | "error" };
 
 const sortSchema = z
   .enum(["top", "new", "controversial"])

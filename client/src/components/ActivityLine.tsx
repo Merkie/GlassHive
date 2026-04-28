@@ -84,6 +84,9 @@ export default function ActivityLine(props: { event: Activity }) {
                 <Match when={e().tone === "start"}>
                   <TbOutlineSparkles size={12} class="mt-0.5 shrink-0 text-orange-400" />
                 </Match>
+                <Match when={e().tone === "error"}>
+                  <TbOutlineAlertTriangle size={12} class="mt-0.5 shrink-0 text-rose-400" />
+                </Match>
               </Switch>
               <span
                 class={
@@ -91,7 +94,9 @@ export default function ActivityLine(props: { event: Activity }) {
                     ? "font-semibold text-emerald-300"
                     : e().tone === "start"
                       ? "font-semibold text-orange-300"
-                      : "font-semibold text-sky-300"
+                      : e().tone === "error"
+                        ? "font-semibold text-rose-300"
+                        : "font-semibold text-sky-300"
                 }
               >
                 {e().label}

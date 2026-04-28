@@ -11,6 +11,10 @@ import type { ActivityEvent } from "./tools.js";
 import prisma from "./resources/prisma.js";
 import cryptr from "./resources/cryptr.js";
 import { encryptedKeySchema } from "./encryptedKey.js";
+import {
+  searchOpenRouterModels,
+  trimModelForClient,
+} from "./openrouter-models.js";
 
 const app = express();
 app.use(cors());
@@ -35,6 +39,7 @@ const requestSchema = z.object({
   durationSec: z.number().int().min(10).max(300).default(30),
   mode: z.enum(["requeue", "random"]).default("requeue"),
   persistentMemory: z.boolean().default(true),
+  modelId: z.string().min(1).max(200).optional(),
 });
 
 const encryptKeySchema = z.object({
@@ -75,6 +80,28 @@ app.get("/api/health", (_req, res) => {
     profiles: profiles.length,
     sampleUsernames: profiles.slice(0, 5).map((p) => p.username),
   });
+});
+
+app.get("/api/models", async (req, res) => {
+  try {
+    const search = typeof req.query.search === "string" ? req.query.search : "";
+    const offsetRaw = Number(req.query.offset ?? 0);
+    const limitRaw = Number(req.query.limit ?? 30);
+    const offset = Number.isFinite(offsetRaw) ? offsetRaw : 0;
+    const limit = Number.isFinite(limitRaw) ? limitRaw : 30;
+    const requireTools = req.query.requireTools === "true";
+    const result = await searchOpenRouterModels({ search, offset, limit, requireTools });
+    res.json({
+      models: result.models.map(trimModelForClient),
+      hasMore: result.hasMore,
+      nextOffset: result.nextOffset,
+      total: result.total,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("GET /api/models failed:", msg);
+    res.status(500).json({ error: "Failed to load models" });
+  }
 });
 
 app.post("/api/encrypt-key", async (req, res) => {
@@ -144,7 +171,7 @@ app.post("/api/run", async (req, res) => {
       tone: "success",
     });
     activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
-    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(DEFAULT_MODEL_ID);
+    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(opts.modelId ?? DEFAULT_MODEL_ID);
     const report = await generateReport({
       model: reportModel,
       source: opts.source,
@@ -273,7 +300,7 @@ app.post("/api/run-stream", async (req, res) => {
     });
     send("report-start", {});
     activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
-    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(DEFAULT_MODEL_ID);
+    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(opts.modelId ?? DEFAULT_MODEL_ID);
     const report = await generateReport({
       model: reportModel,
       source: opts.source,
