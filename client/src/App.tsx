@@ -22,6 +22,8 @@ import {
   TbOutlineArrowsShuffle,
   TbOutlineBrain,
   TbOutlineCircleCheck,
+  TbOutlinePencil,
+  TbOutlineChevronDown,
 } from "solid-icons/tb";
 
 type Post = {
@@ -107,10 +109,8 @@ function karmaColor(k: number): string {
   return "text-neutral-500";
 }
 
-function downloadJson(name: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
+function downloadFile(name: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -119,6 +119,10 @@ function downloadJson(name: string, data: unknown) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+function downloadJson(name: string, data: unknown) {
+  downloadFile(name, JSON.stringify(data, null, 2), "application/json");
 }
 
 function CommentTree(props: { nodes: CommentNode[]; depth: number }) {
@@ -166,6 +170,7 @@ export default function App() {
   const [result, setResult] = createSignal<SimulationResult | null>(null);
   const [report, setReport] = createSignal<string | null>(null);
   const [activity, setActivity] = createSignal<Activity[]>([]);
+  const [logCollapsed, setLogCollapsed] = createSignal(false);
   let logRef: HTMLDivElement | undefined;
   createEffect(() => {
     activity();
@@ -192,6 +197,7 @@ export default function App() {
     setReport(null);
     setActivity([]);
     setDoneAgents([]);
+    setLogCollapsed(false);
 
     try {
       const res = await fetch("/api/run-stream", {
@@ -257,6 +263,7 @@ export default function App() {
                 ...arr,
                 { kind: "phase", label: "report ready", tone: "success" },
               ]);
+              setLogCollapsed(true);
             } else {
               setActivity((arr) => [
                 ...arr,
@@ -462,9 +469,9 @@ export default function App() {
           </div>
         </Show>
 
-        <Show when={loading() || activity().length > 0}>
+        <Show when={(loading() || activity().length > 0) && !logCollapsed()}>
           <section class="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 font-mono text-xs text-neutral-400">
-            <div class="mb-2 flex flex-wrap gap-4">
+            <div class="mb-2 flex flex-wrap items-center gap-4">
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineMessagePlus size={14} class="text-orange-400" />
                 posts: <span class="text-orange-400">{stats().posts}</span>
@@ -485,6 +492,15 @@ export default function App() {
                 <TbOutlineUsers size={14} class="text-neutral-300" />
                 agent lifecycles: <span class="text-neutral-200">{doneAgents().length}</span>
               </span>
+              <Show when={!loading() && activity().length > 0}>
+                <button
+                  type="button"
+                  onClick={() => setLogCollapsed(true)}
+                  class="ml-auto inline-flex items-center gap-1 text-neutral-500 hover:text-neutral-300"
+                >
+                  hide
+                </button>
+              </Show>
             </div>
             <div
               ref={logRef}
@@ -500,12 +516,33 @@ export default function App() {
           </section>
         </Show>
 
+        <Show when={logCollapsed() && activity().length > 0}>
+          <button
+            type="button"
+            onClick={() => setLogCollapsed(false)}
+            class="mt-8 inline-flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-neutral-300"
+          >
+            <TbOutlineChevronDown size={14} />
+            show activity log ({activity().length} events)
+          </button>
+        </Show>
+
         <Show when={report()}>
           {(md) => (
             <section class="mt-10">
-              <h2 class="mb-3 text-sm font-semibold uppercase tracking-widest text-neutral-500">
-                the report
-              </h2>
+              <div class="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+                <h2 class="text-sm font-semibold uppercase tracking-widest text-neutral-500">
+                  the report
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => downloadFile("glasshive-report.md", md(), "text/markdown")}
+                  class="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800"
+                >
+                  <TbOutlineDownload size={14} />
+                  export MD
+                </button>
+              </div>
               <div
                 class="report-md rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6"
                 innerHTML={marked.parse(md(), { async: false }) as string}
@@ -777,7 +814,7 @@ function ActivityLine(props: { event: Activity }) {
               <Show
                 when={e().tone === "success"}
                 fallback={
-                  <TbOutlineLoader2 size={12} class="mt-0.5 shrink-0 animate-spin text-sky-400" />
+                  <TbOutlinePencil size={12} class="mt-0.5 shrink-0 animate-pulse text-sky-400" />
                 }
               >
                 <TbOutlineCircleCheck size={12} class="mt-0.5 shrink-0 text-emerald-400" />
