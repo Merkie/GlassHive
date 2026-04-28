@@ -2,12 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { z } from "zod";
-import { randomUUID } from "node:crypto";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { loadProfiles } from "./profiles.js";
-import { runSimulation, DEFAULT_MODEL_ID } from "./runSimulation.js";
-import { generateReport, type ReportResult } from "./report.js";
-import type { ActivityEvent } from "./tools.js";
+import { runPipeline } from "./runPipeline.js";
 import prisma from "./resources/prisma.js";
 import cryptr from "./resources/cryptr.js";
 import { encryptedKeySchema } from "./encryptedKey.js";
@@ -142,10 +138,10 @@ app.post("/api/run", async (req, res) => {
       .status(400)
       .json({ error: "invalid request", detail: parsed.error.issues });
   }
-  const opts = parsed.data;
+  const { encryptedKey, ...request } = parsed.data;
   let resolved: { apiKey: string; mode: "user" | "admin" };
   try {
-    resolved = resolveApiKey(opts.encryptedKey);
+    resolved = resolveApiKey(encryptedKey);
   } catch (err) {
     if (err instanceof ResolveKeyError) {
       return res.status(401).json({ error: err.message });
@@ -153,97 +149,21 @@ app.post("/api/run", async (req, res) => {
     throw err;
   }
   console.log(
-    `▶ /api/run [${resolved.mode}]: agents=${opts.agentCount} duration=${opts.durationSec}s mode=${opts.mode} source="${opts.source.slice(0, 80).replace(/\s+/g, " ")}…"`
+    `▶ /api/run [${resolved.mode}]: agents=${request.agentCount} duration=${request.durationSec}s mode=${request.mode} source="${request.source.slice(0, 80).replace(/\s+/g, " ")}…"`
   );
   try {
-    const activity: ActivityEvent[] = [
-      { kind: "phase", label: "Starting simulation…", tone: "start" },
-    ];
-    const result = await runSimulation({
-      ...opts,
-      pool: profiles,
+    const final = await runPipeline({
+      request,
+      profiles,
       apiKey: resolved.apiKey,
-      onActivity: (e) => activity.push(e),
     });
-    activity.push({
-      kind: "phase",
-      label: `Simulation complete — ${result.totals.posts} posts, ${result.totals.comments} comments`,
-      tone: "success",
-    });
-    activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
-    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(opts.modelId ?? DEFAULT_MODEL_ID);
-    const report = await generateReport({
-      model: reportModel,
-      source: opts.source,
-      snapshot: result.snapshot,
-    });
-    activity.push({
-      kind: "phase",
-      label: report.markdown
-        ? "Report ready"
-        : `Report skipped${report.error ? `: ${report.error}` : ""}`,
-      tone: report.markdown ? "success" : "info",
-    });
-    const finalTotals = addReportCost(result.totals, report);
-    const id = await persistRun({
-      opts,
-      result,
-      activity,
-      reportMarkdown: report.markdown,
-      totals: finalTotals,
-    });
-    res.json({
-      id,
-      ...result,
-      report: report.markdown,
-      totals: finalTotals,
-    });
+    res.json(final);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("simulation failed:", msg);
     res.status(500).json({ error: msg });
   }
 });
-
-function addReportCost(
-  totals: { costUsd: number; inputTokens: number; outputTokens: number; posts: number; comments: number; elapsedMs: number },
-  report: ReportResult
-) {
-  return {
-    ...totals,
-    costUsd: totals.costUsd + report.costUsd,
-    inputTokens: totals.inputTokens + report.tokens.input,
-    outputTokens: totals.outputTokens + report.tokens.output,
-  };
-}
-
-async function persistRun(args: {
-  opts: z.infer<typeof requestSchema>;
-  result: Awaited<ReturnType<typeof runSimulation>>;
-  activity: ActivityEvent[];
-  reportMarkdown: string | null;
-  totals: ReturnType<typeof addReportCost>;
-}): Promise<string> {
-  const id = randomUUID();
-  await prisma.run.create({
-    data: {
-      id,
-      source: args.opts.source,
-      agentCount: args.opts.agentCount,
-      maxStepsPerAgent: args.opts.maxStepsPerAgent,
-      durationSec: args.opts.durationSec,
-      mode: args.opts.mode,
-      persistentMemory: args.opts.persistentMemory,
-      participants: JSON.stringify(args.result.participants),
-      agentResults: JSON.stringify(args.result.agentResults),
-      snapshot: JSON.stringify(args.result.snapshot),
-      activity: JSON.stringify(args.activity),
-      report: args.reportMarkdown,
-      totals: JSON.stringify(args.totals),
-    },
-  });
-  return id;
-}
 
 // Streaming variant: emit each ActivityEvent + final result as a Server-Sent
 // Events stream so the client can render comments arriving live.
@@ -254,10 +174,10 @@ app.post("/api/run-stream", async (req, res) => {
       .status(400)
       .json({ error: "invalid request", detail: parsed.error.issues });
   }
-  const opts = parsed.data;
+  const { encryptedKey, ...request } = parsed.data;
   let resolved: { apiKey: string; mode: "user" | "admin" };
   try {
-    resolved = resolveApiKey(opts.encryptedKey);
+    resolved = resolveApiKey(encryptedKey);
   } catch (err) {
     if (err instanceof ResolveKeyError) {
       return res.status(401).json({ error: err.message });
@@ -274,62 +194,20 @@ app.post("/api/run-stream", async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  send("start", { agentCount: opts.agentCount });
+  send("start", { agentCount: request.agentCount });
   try {
-    const activity: ActivityEvent[] = [
-      { kind: "phase", label: "Starting simulation…", tone: "start" },
-    ];
-    const result = await runSimulation({
-      ...opts,
-      pool: profiles,
+    const final = await runPipeline({
+      request,
+      profiles,
       apiKey: resolved.apiKey,
-      onActivity: (e) => {
-        activity.push(e);
-        send("activity", e);
-      },
+      onActivity: (e) => send("activity", e),
       onAgentDone: (r) => send("agent-done", r),
+      onSimulationComplete: (info) => send("simulation-complete", info),
+      onReportStart: () => send("report-start", {}),
+      onReportDone: (info) => send("report-done", info),
+      onSaved: (info) => send("saved", info),
     });
-    send("simulation-complete", {
-      posts: result.totals.posts,
-      comments: result.totals.comments,
-    });
-    activity.push({
-      kind: "phase",
-      label: `Simulation complete — ${result.totals.posts} posts, ${result.totals.comments} comments`,
-      tone: "success",
-    });
-    send("report-start", {});
-    activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
-    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(opts.modelId ?? DEFAULT_MODEL_ID);
-    const report = await generateReport({
-      model: reportModel,
-      source: opts.source,
-      snapshot: result.snapshot,
-    });
-    send("report-done", { markdown: report.markdown, error: report.error });
-    activity.push({
-      kind: "phase",
-      label: report.markdown
-        ? "Report ready"
-        : `Report skipped${report.error ? `: ${report.error}` : ""}`,
-      tone: report.markdown ? "success" : "info",
-    });
-    const finalTotals = addReportCost(result.totals, report);
-    const id = await persistRun({
-      opts,
-      result,
-      activity,
-      reportMarkdown: report.markdown,
-      totals: finalTotals,
-    });
-    send("saved", { id });
-    const finalResult = {
-      id,
-      ...result,
-      report: report.markdown,
-      totals: finalTotals,
-    };
-    send("done", finalResult);
+    send("done", final);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     send("error", { error: msg });
