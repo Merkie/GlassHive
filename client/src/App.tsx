@@ -94,7 +94,7 @@ type Activity =
   | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string; body: string }
   | { kind: "vote"; entityId: string; username: string; type: "up" | "down"; result: string }
   | { kind: "tool-error"; tool: string; username: string; error: string }
-  | { kind: "phase"; label: string; tone: "info" | "success" };
+  | { kind: "phase"; label: string; tone: "info" | "success" | "start" };
 
 function fmtUsd(n: number): string {
   if (n === 0) return "$0.00";
@@ -170,6 +170,28 @@ export default function App() {
   const [report, setReport] = createSignal<string | null>(null);
   const [activity, setActivity] = createSignal<Activity[]>([]);
   const [logCollapsed, setLogCollapsed] = createSignal(false);
+  const [remainingSec, setRemainingSec] = createSignal<number | null>(null);
+  let timerHandle: ReturnType<typeof setInterval> | undefined;
+  const stopTimer = () => {
+    if (timerHandle !== undefined) {
+      clearInterval(timerHandle);
+      timerHandle = undefined;
+    }
+    setRemainingSec(null);
+  };
+  const startTimer = (totalSec: number) => {
+    stopTimer();
+    const deadline = Date.now() + totalSec * 1000;
+    setRemainingSec(totalSec);
+    timerHandle = setInterval(() => {
+      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setRemainingSec(left);
+      if (left <= 0 && timerHandle !== undefined) {
+        clearInterval(timerHandle);
+        timerHandle = undefined;
+      }
+    }, 250);
+  };
   let logRef: HTMLDivElement | undefined;
   createEffect(() => {
     activity();
@@ -194,9 +216,12 @@ export default function App() {
     setError(null);
     setResult(null);
     setReport(null);
-    setActivity([]);
+    setActivity([
+      { kind: "phase", label: "Spinning up the room…", tone: "start" },
+    ]);
     setDoneAgents([]);
     setLogCollapsed(false);
+    startTimer(durationSec());
 
     try {
       const res = await fetch("/api/run-stream", {
@@ -242,6 +267,7 @@ export default function App() {
           } else if (name === "agent-done") {
             setDoneAgents((arr) => [...arr, data as AgentResult]);
           } else if (name === "simulation-complete") {
+            stopTimer();
             setActivity((arr) => [
               ...arr,
               {
@@ -283,6 +309,7 @@ export default function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      stopTimer();
       setLoading(false);
     }
   };
@@ -471,6 +498,15 @@ export default function App() {
         <Show when={(loading() || activity().length > 0) && !logCollapsed()}>
           <section class="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 font-mono text-xs text-neutral-400">
             <div class="mb-2 flex flex-wrap items-center gap-4">
+              <Show when={remainingSec() !== null}>
+                <span class="inline-flex items-center gap-1.5">
+                  <TbOutlineClock size={14} class="text-sky-400" />
+                  <span class="text-sky-400 tabular-nums">
+                    {formatDuration(remainingSec()!)}
+                  </span>
+                  <span>remaining</span>
+                </span>
+              </Show>
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineMessagePlus size={14} class="text-orange-400" />
                 Posts: <span class="text-orange-400">{stats().posts}</span>
@@ -810,19 +846,25 @@ function ActivityLine(props: { event: Activity }) {
         <Match when={props.event.kind === "phase" && props.event}>
           {(e) => (
             <>
-              <Show
-                when={e().tone === "success"}
+              <Switch
                 fallback={
                   <TbOutlinePencil size={12} class="mt-0.5 shrink-0 animate-pulse text-sky-400" />
                 }
               >
-                <TbOutlineCircleCheck size={12} class="mt-0.5 shrink-0 text-emerald-400" />
-              </Show>
+                <Match when={e().tone === "success"}>
+                  <TbOutlineCircleCheck size={12} class="mt-0.5 shrink-0 text-emerald-400" />
+                </Match>
+                <Match when={e().tone === "start"}>
+                  <TbOutlineLoader2 size={12} class="mt-0.5 shrink-0 animate-spin text-orange-400" />
+                </Match>
+              </Switch>
               <span
                 class={
                   e().tone === "success"
                     ? "font-semibold text-emerald-300"
-                    : "font-semibold text-sky-300"
+                    : e().tone === "start"
+                      ? "font-semibold text-orange-300"
+                      : "font-semibold text-sky-300"
                 }
               >
                 {e().label}
