@@ -10,7 +10,8 @@ There are no subreddits. Just one front page.
 - **Server:** Express 5 + tsx (no build step in dev) + Zod 4 (port 3811)
 - **AI:** Vercel AI SDK v6 (`ai@6.0.160`) + `@openrouter/ai-sdk-provider@2.3.3`. All LLM calls go through OpenRouter.
 - **Tests:** Vitest (server-side, pure logic against the `Frontpage` class)
-- **State:** In-memory only. No DB. Each run lives entirely inside one `runSimulation()` call; once it returns, the thread exists only in the response payload (or the JSON the user exports).
+- **Persistence:** Prisma + SQLite (`server/prisma/dev.db`). One `Run` row per finished simulation — id (uuid v4), source, settings, the full activity log, agent results, snapshot, report markdown, totals. Public, unauthenticated `/v/:id` page reads from this. Runs in flight live in memory; only the completed run is persisted.
+- **Routing:** `@solidjs/router`. `/` is the form/live-feed page; `/v/:id` is the read-only saved view.
 
 ### Pinned versions
 
@@ -32,32 +33,69 @@ client/                              SolidJS + Vite + Tailwind v4
   public/
     favicon.svg                      Dark tile + cyan honeycomb hex (GlassHive mark)
   src/
-    index.tsx                        render(<App />)
+    index.tsx                        Router setup. Two routes: `/` → Home, `/v/:id` → View.
     app.css                          @import "tailwindcss" + dark-mode body styling
                                      + a `.report-md` block of @apply rules used by the
                                      marked-rendered report HTML.
-    App.tsx                          The whole UI — source textarea, two main sliders
-                                     (Agents, Simulation duration) and a collapsible
-                                     "Advanced settings" panel containing the Agent lifespan
-                                     slider, Respawn mode toggle (Requeue / Random), and
-                                     Persistent agent memory toggle. SSE client, live
-                                     activity feed (optimistic "Spinning up the room…"
-                                     entry on submit, live countdown timer in the header,
-                                     phase markers for simulation-complete / writing-report
-                                     / report-ready, auto-collapses when the report lands
-                                     with a "Show activity log" link to reopen),
-                                     markdown-rendered "the report" section above the
-                                     threaded comment renderer. Both sections have export
-                                     buttons (Markdown for the report, JSON for the thread).
+    types.ts                         Shared shapes: Post, CommentNode, Snapshot, Participant,
+                                     AgentResult, Totals, SimulationResult, Activity (the
+                                     superset including server-emitted events + client-side
+                                     phase markers), and RunRecord (the GET /api/runs/:id
+                                     payload).
+    lib/format.ts                    Pure helpers: fmtUsd, karmaColor, formatDuration,
+                                     downloadFile/downloadJson, countAllComments.
+    components/
+      Logo.tsx                       The GlassHive wordmark + hex SVG. Optional `linkToHome`
+                                     wraps it in an <A href="/"> for the View page.
+      CommentTree.tsx                Recursive nested-comment renderer.
+      ActivityLine.tsx               One row of the activity log — switches on event kind
+                                     (post-created / comment-created / vote / tool-error /
+                                     phase) to pick an icon + format.
+      ActivityFeed.tsx               The full collapsible log section: stats bar (posts /
+                                     comments / votes / errors / agent lifecycles), optional
+                                     remaining-time chip, scrolling log, "Hide" / "Show
+                                     activity log" toggle. `isLive` suppresses the Hide
+                                     button so the feed stays open during a run.
+      Report.tsx                     Markdown-rendered "the report" section + Export
+                                     Markdown button. Renders nothing when markdown is null.
+      Thread.tsx                     The full thread renderer: post cards, vote pills,
+                                     nested CommentTree, totals/cost footer, Export JSON
+                                     button. Used identically by Home (during a finished
+                                     run) and View (after reload).
+    pages/
+      Home.tsx                       The form: source textarea, Agents + Duration sliders,
+                                     collapsible Advanced settings (lifespan, respawn mode,
+                                     persistent memory). Owns the SSE client. While a run
+                                     is in flight, renders ActivityFeed live with the
+                                     countdown timer. When the SSE stream emits `saved`
+                                     with an id, calls `useNavigate()` to push to /v/:id.
+      View.tsx                       Read-only page mounted at /v/:id. Fetches
+                                     /api/runs/:id with createResource and renders Logo +
+                                     ActivityFeed (collapsible, no timer) + Report + Thread
+                                     from the saved row. Public, no auth.
 
 server/                              Express + tsx
-  .env                               OPENROUTER_API_KEY + PORT
+  .env                               OPENROUTER_API_KEY + PORT + DATABASE_URL
+  prisma/
+    schema.prisma                    SQLite datasource. Single `Run` model — id (uuid v4),
+                                     source, settings (agentCount/maxStepsPerAgent/
+                                     durationSec/mode/persistentMemory), and JSON-stringified
+                                     blobs for participants, agentResults, snapshot,
+                                     activity, totals. `report` is plain markdown text or
+                                     null. createdAt for ordering.
+    dev.db                           Local SQLite file (gitignored). Recreate with
+                                     `npm run db:push`.
   profiles/                          250+ unique persona markdown files (modeled to mirror a real sample of society)
     NN-first-last.md                 YAML frontmatter (id, name, age, occupation, location,
                                      politics, religion, personality, interests) + body bio.
                                      Copied from TestMyBit at scaffolding time.
   src/
-    index.ts                         Express bootstrap + endpoints
+    index.ts                         Express bootstrap + endpoints. /api/run and /api/run-stream
+                                     both end by writing the finished run into Prisma and
+                                     return / emit the resulting `id`. /api/runs/:id reads
+                                     a row back, parses the JSON blobs, and returns the
+                                     full RunRecord shape the View page expects.
+    resources/prisma.ts              `new PrismaClient()` singleton.
     profiles.ts                      loadProfiles() reads profiles/*.md, parses frontmatter,
                                      derives a stable reddit-style username per profile
                                      (`deriveUsername()`). sampleProfiles() = Fisher-Yates
@@ -112,8 +150,9 @@ server/                              Express + tsx
 |---|---|---|
 | GET | `/api/health` | Liveness + profile count |
 | GET | `/api/profiles` | List all 250+ personas (id, username, name, age, occupation, location) |
-| POST | `/api/run` | Run a simulation synchronously, return the full result + snapshot |
-| POST | `/api/run-stream` | Run a simulation as Server-Sent Events |
+| POST | `/api/run` | Run a simulation synchronously, persist it, return the full result + snapshot + new `id` |
+| POST | `/api/run-stream` | Run a simulation as Server-Sent Events. Persists at the end and emits a `saved { id }` event before `done`. |
+| GET | `/api/runs/:id` | Fetch a saved run by uuid. Returns RunRecord (settings + participants + agentResults + snapshot + activity + report + totals + createdAt). 404 if missing. Public, unauthenticated — this is what the /v/:id page calls. |
 
 **Request body** (Zod schema in `index.ts`):
 
@@ -138,7 +177,8 @@ server/                              Express + tsx
 | `simulation-complete` | Once, after all workers finish — payload `{ posts, comments }` |
 | `report-start` | Once, right before the LLM is asked to write the report |
 | `report-done` | Once, with `{ markdown, error? }` — `markdown` is null if the run had 0 posts or the report call errored |
-| `done` | Final SimulationResult on success (now includes top-level `report` field) |
+| `saved` | Once, with `{ id }` (uuid v4) after the run is written to the DB. The Home page navigates to /v/:id when this arrives. |
+| `done` | Final SimulationResult on success (now includes top-level `report` field and `id`) |
 | `error` | Terminal error |
 
 ## How a Run Works
@@ -149,7 +189,9 @@ server/                              Express + tsx
 4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or just picks a fresh random participant (`random` mode), and runs again. **The wall-clock deadline is what stops the simulation** — workers loop until `Date.now() >= deadline`. Per-agent step limits cap each visit, not the whole run.
 5. **Persistent memory** (default on): the runner keeps a per-username `ModelMessage[]` and passes it as `priorMessages` on the next respawn. The agent appends a "you're back, what's new?" user turn so the model fetches the latest thread state instead of repeating itself.
 6. **Report** (in the HTTP handler, not inside `runSimulation`): once the simulation finishes, `generateReport()` (`server/src/report.ts`) takes the top-sorted snapshot and asks the same model — with no tools — to write a markdown summary covering overarching opinion, consensus, controversial takes, and notable angles. Cost folds into `totals`. Skipped (markdown=null) when there are 0 posts.
-7. **Result**: a `SimulationResult` with `participants`, `agentResults` (per-session, message log stripped), `snapshot` (the full thread tree), `report` (the markdown summary, or null), and `totals` (cost, tokens, posts, comments, elapsedMs).
+7. **Result**: a `SimulationResult` with `id` (uuid v4 of the saved row), `participants`, `agentResults` (per-session, message log stripped), `snapshot` (the full thread tree), `report` (the markdown summary, or null), and `totals` (cost, tokens, posts, comments, elapsedMs).
+8. **Persist**: once the report call returns, the handler writes everything to a single `Run` row in SQLite — the source, the settings used, the full activity timeline (with synthesized phase markers so /v/:id replays the same banners the live user saw), participants, agentResults, the snapshot, the report markdown, and the totals. The id is a fresh `randomUUID()`.
+9. **Auto-navigate**: the SSE handler emits `saved { id }` immediately after the write, then `done`. The Home page captures the id and `useNavigate()`s to `/v/:id` so the user lands on a permalink they can share / refresh / bookmark.
 
 ## The Six Agent Tools
 
@@ -181,8 +223,8 @@ All defined in `server/src/tools.ts`. Bound to a single `username` per agent so 
 ## Dev Setup
 
 ```bash
-# Server (port 3811)
-cd server && npm install && npm run dev
+# Server (port 3811) — `npm run dev` runs `prisma generate` first, then tsx watch
+cd server && npm install && npm run db:push && npm run dev
 
 # Client (port 3810, proxies /api → :3811)
 cd client && npm install && npm run dev
@@ -196,6 +238,7 @@ cd server && npm run test:watch
 
 - `OPENROUTER_API_KEY` — required for any LLM call
 - `PORT` — defaults to `3811`
+- `DATABASE_URL` — Prisma SQLite URL, e.g. `file:./dev.db`
 
 The client has no env vars; Vite proxies `/api` straight to `localhost:3811` (see `client/vite.config.ts`).
 
@@ -225,6 +268,6 @@ This is a SolidJS project. **Not React.** Same rules as the rest of the user's S
 ## Conventions
 
 - **Profiles are immutable.** They were copied from TestMyBit; usernames are derived deterministically by `deriveUsername()` (a hash-based pick from a small pattern pool). If you ever need to add a `username:` field directly to a profile's frontmatter, the loader will honor it and skip the derivation.
-- **No persistence layer.** Every run starts a fresh `Frontpage`. If you want to save a thread, the UI's "export JSON" button is the only mechanism today.
+- **One row per finished run.** Each simulation starts with a fresh in-memory `Frontpage` and is persisted exactly once at the end (after the report call). Runs in flight aren't stored — refresh during a generation and you lose your spot in the SSE stream. After the `saved` event the user is on `/v/:id` and refreshes are safe.
 - **No streaming partial UI updates of the thread itself.** SSE streams `activity` events (which feed the live activity counter and log), but the rendered thread doesn't appear until the `done` event lands. If you need live-rendering of comments as they're created, that's a feature to add — wire each `comment-created` activity event through to a live snapshot fetch or push the snapshot deltas directly.
 - **The simulation deadline is global, not per-agent.** Once `Date.now()` passes the deadline, no more sessions start. An in-flight `generateText` is allowed to finish, so you can overshoot by one step.

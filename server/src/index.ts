@@ -2,9 +2,12 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { loadProfiles } from "./profiles.js";
 import { runSimulation, getOpenRouter, DEFAULT_MODEL_ID } from "./runSimulation.js";
 import { generateReport, type ReportResult } from "./report.js";
+import type { ActivityEvent } from "./tools.js";
+import prisma from "./resources/prisma.js";
 
 const app = express();
 app.use(cors());
@@ -56,17 +59,46 @@ app.post("/api/run", async (req, res) => {
     `▶ /api/run: agents=${opts.agentCount} duration=${opts.durationSec}s mode=${opts.mode} source="${opts.source.slice(0, 80).replace(/\s+/g, " ")}…"`
   );
   try {
-    const result = await runSimulation({ ...opts, pool: profiles });
+    const activity: ActivityEvent[] = [
+      { kind: "phase", label: "Starting simulation…", tone: "start" },
+    ];
+    const result = await runSimulation({
+      ...opts,
+      pool: profiles,
+      onActivity: (e) => activity.push(e),
+    });
+    activity.push({
+      kind: "phase",
+      label: `Simulation complete — ${result.totals.posts} posts, ${result.totals.comments} comments`,
+      tone: "success",
+    });
+    activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
     const reportModel = getOpenRouter().chat(DEFAULT_MODEL_ID);
     const report = await generateReport({
       model: reportModel,
       source: opts.source,
       snapshot: result.snapshot,
     });
+    activity.push({
+      kind: "phase",
+      label: report.markdown
+        ? "Report ready"
+        : `Report skipped${report.error ? `: ${report.error}` : ""}`,
+      tone: report.markdown ? "success" : "info",
+    });
+    const finalTotals = addReportCost(result.totals, report);
+    const id = await persistRun({
+      opts,
+      result,
+      activity,
+      reportMarkdown: report.markdown,
+      totals: finalTotals,
+    });
     res.json({
+      id,
       ...result,
       report: report.markdown,
-      totals: addReportCost(result.totals, report),
+      totals: finalTotals,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -85,6 +117,34 @@ function addReportCost(
     inputTokens: totals.inputTokens + report.tokens.input,
     outputTokens: totals.outputTokens + report.tokens.output,
   };
+}
+
+async function persistRun(args: {
+  opts: z.infer<typeof requestSchema>;
+  result: Awaited<ReturnType<typeof runSimulation>>;
+  activity: ActivityEvent[];
+  reportMarkdown: string | null;
+  totals: ReturnType<typeof addReportCost>;
+}): Promise<string> {
+  const id = randomUUID();
+  await prisma.run.create({
+    data: {
+      id,
+      source: args.opts.source,
+      agentCount: args.opts.agentCount,
+      maxStepsPerAgent: args.opts.maxStepsPerAgent,
+      durationSec: args.opts.durationSec,
+      mode: args.opts.mode,
+      persistentMemory: args.opts.persistentMemory,
+      participants: JSON.stringify(args.result.participants),
+      agentResults: JSON.stringify(args.result.agentResults),
+      snapshot: JSON.stringify(args.result.snapshot),
+      activity: JSON.stringify(args.activity),
+      report: args.reportMarkdown,
+      totals: JSON.stringify(args.totals),
+    },
+  });
+  return id;
 }
 
 // Streaming variant: emit each ActivityEvent + final result as a Server-Sent
@@ -109,17 +169,29 @@ app.post("/api/run-stream", async (req, res) => {
 
   send("start", { agentCount: opts.agentCount });
   try {
+    const activity: ActivityEvent[] = [
+      { kind: "phase", label: "Starting simulation…", tone: "start" },
+    ];
     const result = await runSimulation({
       ...opts,
       pool: profiles,
-      onActivity: (e) => send("activity", e),
+      onActivity: (e) => {
+        activity.push(e);
+        send("activity", e);
+      },
       onAgentDone: (r) => send("agent-done", r),
     });
     send("simulation-complete", {
       posts: result.totals.posts,
       comments: result.totals.comments,
     });
+    activity.push({
+      kind: "phase",
+      label: `Simulation complete — ${result.totals.posts} posts, ${result.totals.comments} comments`,
+      tone: "success",
+    });
     send("report-start", {});
+    activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
     const reportModel = getOpenRouter().chat(DEFAULT_MODEL_ID);
     const report = await generateReport({
       model: reportModel,
@@ -127,10 +199,27 @@ app.post("/api/run-stream", async (req, res) => {
       snapshot: result.snapshot,
     });
     send("report-done", { markdown: report.markdown, error: report.error });
+    activity.push({
+      kind: "phase",
+      label: report.markdown
+        ? "Report ready"
+        : `Report skipped${report.error ? `: ${report.error}` : ""}`,
+      tone: report.markdown ? "success" : "info",
+    });
+    const finalTotals = addReportCost(result.totals, report);
+    const id = await persistRun({
+      opts,
+      result,
+      activity,
+      reportMarkdown: report.markdown,
+      totals: finalTotals,
+    });
+    send("saved", { id });
     const finalResult = {
+      id,
       ...result,
       report: report.markdown,
-      totals: addReportCost(result.totals, report),
+      totals: finalTotals,
     };
     send("done", finalResult);
   } catch (err) {
@@ -138,6 +227,39 @@ app.post("/api/run-stream", async (req, res) => {
     send("error", { error: msg });
   } finally {
     res.end();
+  }
+});
+
+app.get("/api/runs/:id", async (req, res) => {
+  const id = req.params.id;
+  if (!id || typeof id !== "string") {
+    return res.status(400).json({ error: "invalid id" });
+  }
+  try {
+    const row = await prisma.run.findUnique({ where: { id } });
+    if (!row) return res.status(404).json({ error: "run not found" });
+    res.json({
+      id: row.id,
+      source: row.source,
+      settings: {
+        agentCount: row.agentCount,
+        maxStepsPerAgent: row.maxStepsPerAgent,
+        durationSec: row.durationSec,
+        mode: row.mode,
+        persistentMemory: row.persistentMemory,
+      },
+      participants: JSON.parse(row.participants),
+      agentResults: JSON.parse(row.agentResults),
+      snapshot: JSON.parse(row.snapshot),
+      activity: JSON.parse(row.activity),
+      report: row.report,
+      totals: JSON.parse(row.totals),
+      createdAt: row.createdAt.toISOString(),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`GET /api/runs/${id} failed:`, msg);
+    res.status(500).json({ error: msg });
   }
 });
 

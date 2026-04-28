@@ -1,0 +1,437 @@
+import { createSignal, Show, type JSX } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import {
+  TbOutlineSparkles,
+  TbOutlineLoader2,
+  TbOutlineSettings,
+  TbOutlineChevronRight,
+  TbOutlineUsers,
+  TbOutlineClock,
+  TbOutlineFileText,
+  TbOutlineRefresh,
+  TbOutlineRepeat,
+  TbOutlineArrowsShuffle,
+  TbOutlineBrain,
+  TbOutlineHeartbeat,
+} from "solid-icons/tb";
+import type { Activity, AgentResult } from "../types";
+import { formatDuration } from "../lib/format";
+import Logo from "../components/Logo";
+import ActivityFeed from "../components/ActivityFeed";
+
+const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek released a new open-weights model that scores within 2 points of GPT-5 on standard benchmarks while costing roughly 1/30th to train. The release dropped overnight on Hugging Face with a permissive license. Western labs are reportedly scrambling to respond.`;
+
+export default function Home() {
+  const navigate = useNavigate();
+
+  const [source, setSource] = createSignal(SAMPLE_SOURCE);
+  const [agentCount, setAgentCount] = createSignal(10);
+  const [maxStepsPerAgent, setMaxStepsPerAgent] = createSignal(12);
+  const [durationSec, setDurationSec] = createSignal(30);
+  const [mode, setMode] = createSignal<"requeue" | "random">("requeue");
+  const [persistentMemory, setPersistentMemory] = createSignal(true);
+  const [showAdvanced, setShowAdvanced] = createSignal(false);
+
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+  const [activity, setActivity] = createSignal<Activity[]>([]);
+  const [doneAgents, setDoneAgents] = createSignal<AgentResult[]>([]);
+  const [logCollapsed, setLogCollapsed] = createSignal(false);
+  const [remainingSec, setRemainingSec] = createSignal<number | null>(null);
+
+  let timerHandle: ReturnType<typeof setInterval> | undefined;
+  const stopTimer = () => {
+    if (timerHandle !== undefined) {
+      clearInterval(timerHandle);
+      timerHandle = undefined;
+    }
+    setRemainingSec(null);
+  };
+  const startTimer = (totalSec: number) => {
+    stopTimer();
+    const deadline = Date.now() + totalSec * 1000;
+    setRemainingSec(totalSec);
+    timerHandle = setInterval(() => {
+      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setRemainingSec(left);
+      if (left <= 0 && timerHandle !== undefined) {
+        clearInterval(timerHandle);
+        timerHandle = undefined;
+      }
+    }, 250);
+  };
+
+  const submit = async () => {
+    const text = source().trim();
+    if (!text) return;
+    setLoading(true);
+    setError(null);
+    setActivity([
+      { kind: "phase", label: "Starting simulation…", tone: "start" },
+    ]);
+    setDoneAgents([]);
+    setLogCollapsed(false);
+    startTimer(durationSec());
+
+    try {
+      const res = await fetch("/api/run-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: text,
+          agentCount: agentCount(),
+          maxStepsPerAgent: maxStepsPerAgent(),
+          durationSec: durationSec(),
+          mode: mode(),
+          persistentMemory: persistentMemory(),
+        }),
+      });
+      if (!res.ok || !res.body) {
+        const body = await res.text();
+        throw new Error(`${res.status}: ${body}`);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let savedId: string | null = null;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const chunk = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const eventLine = chunk.match(/^event:\s*(.*)$/m);
+          const dataLine = chunk.match(/^data:\s*(.*)$/m);
+          if (!eventLine || !dataLine) continue;
+          const name = eventLine[1].trim();
+          let data: any;
+          try {
+            data = JSON.parse(dataLine[1]);
+          } catch {
+            continue;
+          }
+          if (name === "activity") {
+            setActivity((arr) => [...arr, data as Activity]);
+          } else if (name === "agent-done") {
+            setDoneAgents((arr) => [...arr, data as AgentResult]);
+          } else if (name === "simulation-complete") {
+            stopTimer();
+            setActivity((arr) => [
+              ...arr,
+              {
+                kind: "phase",
+                label: `Simulation complete — ${data.posts} posts, ${data.comments} comments`,
+                tone: "success",
+              },
+            ]);
+          } else if (name === "report-start") {
+            setActivity((arr) => [
+              ...arr,
+              { kind: "phase", label: "Writing report…", tone: "info" },
+            ]);
+          } else if (name === "report-done") {
+            if (data.markdown) {
+              setActivity((arr) => [
+                ...arr,
+                { kind: "phase", label: "Report ready", tone: "success" },
+              ]);
+            } else {
+              setActivity((arr) => [
+                ...arr,
+                {
+                  kind: "phase",
+                  label: `Report skipped${data.error ? `: ${data.error}` : ""}`,
+                  tone: "info",
+                },
+              ]);
+            }
+          } else if (name === "saved") {
+            savedId = data.id;
+          } else if (name === "error") {
+            setError(data.error ?? "unknown error");
+          }
+        }
+      }
+      if (savedId) {
+        navigate(`/v/${savedId}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      stopTimer();
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div class="min-h-full w-full">
+      <div class="mx-auto max-w-5xl px-6 py-10">
+        <header class="mb-8 flex items-baseline justify-between">
+          <div>
+            <Logo />
+            <p class="mt-1 text-sm text-neutral-400">
+              Drop in source material. Watch a roomful of AI agents argue about it
+              in a fake comment section.
+            </p>
+          </div>
+        </header>
+
+        <section class="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
+          <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+            <TbOutlineFileText size={16} class="text-neutral-500" />
+            Source material
+          </label>
+          <textarea
+            class="mt-2 min-h-[160px] w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/70 p-3 font-mono text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-orange-500"
+            placeholder="Paste a news article, a tweet, an essay, a Reddit post — anything for the agents to react to."
+            value={source()}
+            onInput={(e) => setSource(e.currentTarget.value)}
+            disabled={loading()}
+          />
+
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <Slider
+              label="Agents"
+              value={agentCount()}
+              min={1}
+              max={50}
+              onChange={setAgentCount}
+              disabled={loading()}
+              accent="text-orange-400"
+              icon={<TbOutlineUsers size={16} class="text-neutral-500" />}
+            />
+            <Slider
+              label="Simulation duration"
+              value={durationSec()}
+              min={10}
+              max={300}
+              step={10}
+              onChange={setDurationSec}
+              disabled={loading()}
+              accent="text-emerald-400"
+              format={formatDuration}
+              icon={<TbOutlineClock size={16} class="text-neutral-500" />}
+            />
+          </div>
+
+          <div class="mt-5 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950/40">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              class="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:bg-neutral-900/60"
+              aria-expanded={showAdvanced()}
+            >
+              <span class="flex items-center gap-2">
+                <TbOutlineSettings size={16} class="text-neutral-500" />
+                Advanced settings
+              </span>
+              <TbOutlineChevronRight
+                size={16}
+                class="text-neutral-500 transition-transform"
+                style={{ transform: showAdvanced() ? "rotate(90deg)" : "rotate(0deg)" }}
+              />
+            </button>
+            <Show when={showAdvanced()}>
+              <div class="space-y-5 border-t border-neutral-800/60 p-4">
+                <Slider
+                  label="Agent lifespan"
+                  value={maxStepsPerAgent()}
+                  min={1}
+                  max={40}
+                  onChange={setMaxStepsPerAgent}
+                  disabled={loading()}
+                  accent="text-fuchsia-400"
+                  unit="steps"
+                  icon={<TbOutlineHeartbeat size={16} class="text-neutral-500" />}
+                />
+
+                <div class="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                      <TbOutlineRefresh size={16} class="text-neutral-500" />
+                      Respawn mode
+                    </label>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                      <ModeButton
+                        active={mode() === "requeue"}
+                        disabled={loading()}
+                        onClick={() => setMode("requeue")}
+                        label="Requeue"
+                        icon={<TbOutlineRepeat size={16} />}
+                      />
+                      <ModeButton
+                        active={mode() === "random"}
+                        disabled={loading()}
+                        onClick={() => setMode("random")}
+                        label="Random"
+                        icon={<TbOutlineArrowsShuffle size={16} />}
+                      />
+                    </div>
+                    <p class="mt-2 text-xs italic text-neutral-500">
+                      {mode() === "requeue"
+                        ? "Round-robin: each agent waits their turn before being respawned"
+                        : "Any participant fills the next open slot — louder users post more, others post less"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                      <TbOutlineBrain size={16} class="text-neutral-500" />
+                      Persistent agent memory
+                    </label>
+                    <div class="mt-2 flex items-center gap-3">
+                      <Toggle
+                        on={persistentMemory()}
+                        disabled={loading()}
+                        onToggle={() => setPersistentMemory((v) => !v)}
+                      />
+                      <span class="text-sm font-semibold text-neutral-200">
+                        {persistentMemory() ? "On" : "Off"}
+                      </span>
+                    </div>
+                    <p class="mt-2 text-xs italic text-neutral-500">
+                      {persistentMemory()
+                        ? "Agents resume their conversation when respawned"
+                        : "Every respawn boots fresh from the system prompt"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Show>
+          </div>
+
+          <div class="mt-5 flex justify-end">
+            <button
+              type="button"
+              onClick={submit}
+              disabled={loading() || !source().trim()}
+              class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
+                <TbOutlineLoader2 size={18} class="animate-spin" />
+              </Show>
+              {loading() ? "The room is talking…" : "Generate"}
+            </button>
+          </div>
+        </section>
+
+        <Show when={error()}>
+          <div class="mt-6 rounded-lg border border-rose-900/60 bg-rose-950/40 p-4 text-sm text-rose-300">
+            {error()}
+          </div>
+        </Show>
+
+        <ActivityFeed
+          activity={activity()}
+          doneAgents={doneAgents()}
+          collapsed={logCollapsed()}
+          setCollapsed={setLogCollapsed}
+          remainingSec={remainingSec()}
+          isLive={loading()}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ModeButton(props: {
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  label: string;
+  icon?: JSX.Element;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      disabled={props.disabled}
+      class={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-40 ${
+        props.active
+          ? "border-orange-500 bg-orange-500/10 text-neutral-100"
+          : "border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200"
+      }`}
+    >
+      <Show when={props.icon}>{props.icon}</Show>
+      {props.label}
+    </button>
+  );
+}
+
+function Toggle(props: {
+  on: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={props.on}
+      onClick={props.onToggle}
+      disabled={props.disabled}
+      class={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+        props.on ? "bg-orange-500" : "bg-neutral-700"
+      }`}
+    >
+      <span
+        class={`pointer-events-none block h-4 w-4 rounded-full bg-white transition-transform duration-200 ease-in-out ${
+          props.on ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+        style={{ "box-shadow": "0 1px 3px rgba(0,0,0,0.2)" }}
+      />
+    </button>
+  );
+}
+
+function Slider(props: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (n: number) => void;
+  disabled: boolean;
+  accent: string;
+  unit?: string;
+  format?: (n: number) => string;
+  icon?: JSX.Element;
+}) {
+  return (
+    <div>
+      <div class="flex items-center justify-between text-sm font-medium text-neutral-300">
+        <span class="inline-flex items-center gap-1.5">
+          <Show when={props.icon}>{props.icon}</Show>
+          {props.label}
+        </span>
+        <span class={`font-mono text-lg font-bold ${props.accent}`}>
+          <Show
+            when={props.format}
+            fallback={
+              <>
+                {props.value}
+                <Show when={props.unit}>
+                  <span class="ml-1 text-sm font-normal text-neutral-400">{props.unit}</span>
+                </Show>
+              </>
+            }
+          >
+            {(format) => <>{format()(props.value)}</>}
+          </Show>
+        </span>
+      </div>
+      <input
+        type="range"
+        min={props.min}
+        max={props.max}
+        step={props.step ?? 1}
+        value={props.value}
+        onInput={(e) => props.onChange(Number.parseInt(e.currentTarget.value, 10))}
+        disabled={props.disabled}
+        class="mt-2 w-full accent-orange-500"
+      />
+    </div>
+  );
+}

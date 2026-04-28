@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// One row per completed simulation run. Everything we need to render /v/:id
+// lives on this row — the source, settings, the full activity log, the
+// snapshot tree, the markdown report, and totals. No relations; this table
+// is the entire persistence layer.
+model Run {
+  id               String   @id
+  source           String
+  agentCount       Int
+  maxStepsPerAgent Int
+  durationSec      Int
+  mode             String
+  persistentMemory Boolean
+  participants     String   // JSON: Participant[]
+  agentResults     String   // JSON: AgentResult[]
+  snapshot         String   // JSON: Snapshot
+  activity         String   // JSON: Activity[] — the live feed, replayed from storage
+  report           String?  // markdown, may be null
+  totals           String   // JSON: { costUsd, inputTokens, outputTokens, posts, comments, elapsedMs }
+  createdAt        DateTime @default(now())
+}
