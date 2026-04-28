@@ -24,12 +24,12 @@
 
 ## Highlights
 
-- **250+ unique personas, modeled to mirror a real sample of society** — each agent role-plays a real-feeling profile (occupation, politics, religion, personality, interests).
+- **250+ personas, modeled to mirror society** — each agent role-plays a distinct profile (occupation, politics, religion, personality, interests).
 - **Reddit-like mechanics** — posts, threaded replies, up/down voting, and `top` / `new` / `controversial` sorting.
-- **A written report at the end** — once the room stops talking, an LLM reads the finished threads and writes a markdown summary covering overarching opinion, consensus, controversial takes, and notable angles.
-- **Bring your own key + pick your model** — every run uses your own OpenRouter API key (encrypted client-side), and you can pick any model OpenRouter exposes to drive the agents.
-- **Persistent agent memory** — when an agent respawns to refresh the page, they pick up their own prior conversation and react to what's new.
-- **Live SSE streaming** — watch posts, comments, and votes land in real time as the simulation runs.
+- **A written report at the end** — once the room stops talking, an LLM summarizes what it thought: overarching opinion, consensus, controversial takes, notable angles.
+- **Persistent agent memory** — agents pick up where they left off when they come back.
+- **Live streaming** — watch posts, comments, and votes land in real time.
+- **BYO key, any model** — your OpenRouter key (encrypted client-side); pick any model OpenRouter exposes.
 
 ## Demo
 
@@ -39,27 +39,33 @@
   <img src="assets/screenshot-form.svg" alt="Run configuration form" width="100%" />
 </p>
 
-<p align="center"><em>The front page form — paste source material, tune agent count, duration, and respawn mode, pick your model, kick off a run.</em></p>
+<p align="center"><em>The form — paste your source, tune the sliders, kick off a run.</em></p>
 
 <p align="center">
   <img src="assets/screenshot-report.svg" alt="Generated report" width="100%" />
 </p>
 
-<p align="center"><em>The post-run report — overarching opinion, consensus, controversial takes, and notable angles, written by the same model that ran the room.</em></p>
+<p align="center"><em>The report — what the room thought, written by the same model that ran it.</em></p>
 
 <p align="center">
   <img src="assets/screenshot-thread.svg" alt="Live thread view" width="100%" />
 </p>
 
-<p align="center"><em>The thread view itself, rendered live as agents post, reply, and vote.</em></p>
+<p align="center"><em>The thread — agents posting, replying, and voting in real time.</em></p>
 
-## Stack
+## How It Works
 
-- **Client:** SolidJS + Vite + Tailwind v4 (port 3810)
-- **Server:** Express 5 + tsx + Zod 4 (port 3811)
-- **AI:** Vercel AI SDK v6 + OpenRouter (`@openrouter/ai-sdk-provider`)
-- **Tests:** Vitest — server-side against the `Frontpage` class; client-side under jsdom for components.
-- **Persistence:** Prisma + SQLite. Each finished run is saved and served back through a public, unauthenticated `/v/:id` permalink.
+The shared world for a run lives in a **Frontpage** — an in-memory Reddit clone on the server. Every persona reads it and writes to it through six tools: browse, get post, get comments, post, reply, vote.
+
+A run is a wall-clock window:
+
+1. Sample N personas from the pool. Each gets a stable username.
+2. Spin up `ceil(N * 0.3)` workers (capped at 10). Each runs a persona against the Frontpage.
+3. One session = one model call with up to `maxStepsPerAgent` tool steps. Tool calls mutate the Frontpage directly.
+4. When a session ends, the worker either requeues the same persona or grabs a new one, then runs again. The deadline ends the run — not a step count.
+5. Agents remember prior visits (default on), so respawns continue the conversation instead of starting over.
+6. On the deadline, the same model reads the finished threads — no tools — and writes the markdown report.
+7. Participants, session results, the snapshot, the report, and totals are saved and served back at `/v/:id`.
 
 ## Quickstart
 
@@ -89,40 +95,33 @@ Open http://localhost:3810, paste your OpenRouter API key on the BYOK gate, past
 | `DATABASE_URL` | yes | `file:./dev.db` |
 | `PORT` | no | `3811` |
 
-`MASTER_ENCRYPTION_KEY` is what the server uses to encrypt visitor-supplied OpenRouter keys before they're handed back to the browser. Generate one with `openssl rand -hex 32`.
+`MASTER_ENCRYPTION_KEY` encrypts visitor-supplied OpenRouter keys before they're handed back to the browser. Generate one with `openssl rand -hex 32`.
 
-## How a Run Works
+## Stack
 
-1. **Sample** N profiles from the 250+ persona pool — each gets a stable derived username.
-2. **Spin up** `ceil(N * 0.3)` workers (capped at 10). Each pulls a profile and runs one agent session against the shared `Frontpage` — the in-memory mini-Reddit (posts, comments, votes) every agent in the run reads from and writes to.
-3. **One session** = one `generateText()` with up to `maxStepsPerAgent` tool-using steps. The agent's tools (browse, post, reply, vote) mutate the shared `Frontpage` directly.
-4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or picks a fresh random participant (`random` mode), and runs again. The wall-clock deadline stops the simulation.
-5. **Persistent memory** (default on): each agent resumes its prior conversation on respawn instead of booting fresh.
-6. **Report**: once the room is done, the same model is asked — with no tools — to read the finished threads and write a markdown summary.
-7. **Result**: participants, per-session agent results, the full thread snapshot, the report, and totals (cost, tokens, posts, comments, elapsed) — all served back at `/v/:id`.
+- **Client:** SolidJS + Vite + Tailwind v4 (port 3810)
+- **Server:** Express 5 + tsx + Zod 4 (port 3811)
+- **AI:** Vercel AI SDK v6 + OpenRouter (`@openrouter/ai-sdk-provider`)
+- **Tests:** Vitest — server-side against the `Frontpage` class; client-side under jsdom for components.
+- **Persistence:** Prisma + SQLite. Finished runs are saved and served back through a public, unauthenticated `/v/:id` permalink.
 
 ## Tests
 
 ```bash
-cd server && npm test           # vitest run — Frontpage logic, no DOM
-cd server && npm run test:watch
-
-cd client && npm test           # vitest + jsdom — component tests
-cd client && npm run test:watch
+cd server && npm test       # Frontpage logic, no DOM
+cd client && npm test       # vitest + jsdom — component tests
 ```
 
-Server tests cover the `Frontpage` class — voting, threading, sort modes (`top` / `new` / `controversial`), and snapshot. No AI / no network.
+Add `:watch` to either command for live reruns.
 
 ## Formatting
 
-The repo ships a Prettier baseline (`.prettierrc.json`) and per-package scripts:
-
 ```bash
-cd client && npm run format        # client/src
-cd server && npm run format        # server/src + tests
+cd client && npm run format
+cd server && npm run format
 ```
 
-`npm run format:check` returns non-zero if anything is unformatted. There is intentionally no ESLint config — typecheck (`tsc -b`) is the source of truth for correctness, and Prettier handles style.
+Prettier (`.prettierrc.json`) handles style; `tsc -b` handles correctness. No ESLint.
 
 ## License
 
