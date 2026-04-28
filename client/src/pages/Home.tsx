@@ -187,7 +187,7 @@ export default function Home() {
         <header class="mb-8 flex items-start justify-between gap-4">
           <div>
             <Logo />
-            <p class="mt-1 text-sm text-neutral-400">
+            <p class="mt-3 mb-2 text-sm text-neutral-400">
               Drop in source material. Watch a roomful of AI agents argue about it
               in a fake comment section.
             </p>

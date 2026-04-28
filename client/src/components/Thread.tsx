@@ -9,7 +9,7 @@ export default function Thread(props: { result: SimulationResult }) {
     <section class="mt-10">
       <div class="mb-6 flex flex-wrap items-baseline justify-between gap-3">
         <h2 class="text-sm font-semibold uppercase tracking-widest text-neutral-500">
-          the thread
+          the threads
         </h2>
         <button
           type="button"

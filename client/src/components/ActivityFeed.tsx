@@ -101,7 +101,7 @@ export default function ActivityFeed(props: {
         <button
           type="button"
           onClick={() => props.setCollapsed(false)}
-          class="mt-8 inline-flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-neutral-300"
+          class="mt-3 inline-flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-neutral-300"
         >
           <TbOutlineChevronRight size={14} />
           Show activity log ({props.activity.length} events)

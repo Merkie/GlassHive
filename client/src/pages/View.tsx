@@ -19,7 +19,7 @@ async function fetchRun(id: string): Promise<RunRecord> {
 export default function View() {
   const params = useParams<{ id: string }>();
   const [run] = createResource(() => params.id, fetchRun);
-  const [logCollapsed, setLogCollapsed] = createSignal(false);
+  const [logCollapsed, setLogCollapsed] = createSignal(true);
 
   return (
     <div class="min-h-full w-full">
