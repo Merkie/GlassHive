@@ -1,12 +1,18 @@
 import "dotenv/config";
 import express from "express";
+import type { Response } from "express";
 import cors from "cors";
 import { z } from "zod";
 import { loadProfiles } from "./profiles.js";
 import { runPipeline } from "./runPipeline.js";
 import prisma from "./resources/prisma.js";
 import cryptr from "./resources/cryptr.js";
-import { encryptedKeySchema } from "./encryptedKey.js";
+import { runRequestSchema } from "./runRequestSchema.js";
+import type {
+  RunRecord,
+  RunStreamEventMap,
+  RunStreamEventName,
+} from "../../shared/contracts.js";
 import {
   searchOpenRouterModels,
   trimModelForClient,
@@ -27,17 +33,6 @@ if (!process.env.OPENROUTER_API_KEY) {
   throw new Error("OPENROUTER_API_KEY environment variable is required");
 }
 
-const requestSchema = z.object({
-  source: z.string().min(1).max(20000),
-  encryptedKey: encryptedKeySchema,
-  agentCount: z.number().int().min(1).max(50).default(10),
-  maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
-  durationSec: z.number().int().min(10).max(300).default(30),
-  mode: z.enum(["requeue", "random"]).default("requeue"),
-  persistentMemory: z.boolean().default(true),
-  modelId: z.string().min(1).max(200).optional(),
-});
-
 const encryptKeySchema = z.object({
   key: z.string().min(1).max(256),
 });
@@ -57,6 +52,18 @@ function resolveApiKey(encryptedKey: string): { apiKey: string; mode: "user" | "
     return { apiKey: process.env.OPENROUTER_API_KEY!, mode: "admin" };
   }
   return { apiKey: plaintext, mode: "user" };
+}
+
+// Typed wrapper around `res.write` so adding an event in the contract is a
+// compile error here until the emit site is updated.
+function makeSseSender(res: Response) {
+  return <K extends RunStreamEventName>(
+    name: K,
+    data: RunStreamEventMap[K]
+  ) => {
+    res.write(`event: ${name}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
 }
 
 async function validateOpenRouterKey(apiKey: string): Promise<boolean> {
@@ -132,7 +139,7 @@ app.get("/api/profiles", (_req, res) => {
 });
 
 app.post("/api/run", async (req, res) => {
-  const parsed = requestSchema.safeParse(req.body);
+  const parsed = runRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
       .status(400)
@@ -168,7 +175,7 @@ app.post("/api/run", async (req, res) => {
 // Streaming variant: emit each ActivityEvent + final result as a Server-Sent
 // Events stream so the client can render comments arriving live.
 app.post("/api/run-stream", async (req, res) => {
-  const parsed = requestSchema.safeParse(req.body);
+  const parsed = runRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
       .status(400)
@@ -189,10 +196,7 @@ app.post("/api/run-stream", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders?.();
 
-  const send = (event: string, data: unknown) => {
-    res.write(`event: ${event}\n`);
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  };
+  const send = makeSseSender(res);
 
   send("start", { agentCount: request.agentCount });
   try {
@@ -224,14 +228,14 @@ app.get("/api/runs/:id", async (req, res) => {
   try {
     const row = await prisma.run.findUnique({ where: { id } });
     if (!row) return res.status(404).json({ error: "run not found" });
-    res.json({
+    const record: RunRecord = {
       id: row.id,
       source: row.source,
       settings: {
         agentCount: row.agentCount,
         maxStepsPerAgent: row.maxStepsPerAgent,
         durationSec: row.durationSec,
-        mode: row.mode,
+        mode: row.mode as RunRecord["settings"]["mode"],
         persistentMemory: row.persistentMemory,
       },
       participants: JSON.parse(row.participants),
@@ -241,7 +245,8 @@ app.get("/api/runs/:id", async (req, res) => {
       report: row.report,
       totals: JSON.parse(row.totals),
       createdAt: row.createdAt.toISOString(),
-    });
+    };
+    res.json(record);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`GET /api/runs/${id} failed:`, msg);

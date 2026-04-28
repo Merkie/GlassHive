@@ -4,7 +4,7 @@ import { Frontpage, type FrontpageSnapshot } from "./frontpage.js";
 import { runAgent, type AgentRunResult } from "./agent.js";
 
 export type PublicAgentResult = Omit<AgentRunResult, "messages">;
-import type { ActivityEvent } from "./tools.js";
+import type { ActivityEvent, SimulationMode } from "../../shared/contracts.js";
 import { sampleProfiles, type Profile } from "./profiles.js";
 
 export const DEFAULT_MODEL_ID = "google/gemini-3.1-flash-lite-preview";
@@ -14,7 +14,7 @@ export const DEFAULT_MODEL_ID = "google/gemini-3.1-flash-lite-preview";
 // people drop in, post, come back later when something new is on top.
 // 'random' picks a participant at random for every open slot — chaotic
 // and uneven; loud users may post 5x while others post once.
-export type SimulationMode = "requeue" | "random";
+export type { SimulationMode };
 
 export interface SimulationOptions {
   source: string;

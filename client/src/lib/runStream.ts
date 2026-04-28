@@ -1,4 +1,8 @@
-import type { Activity, AgentResult, SimulationResult } from "../types";
+import {
+  isRunStreamEventName,
+  type RunStreamEvent,
+  type RunStreamEventMap,
+} from "../../../shared/contracts";
 
 export type RunStreamInput = {
   source: string;
@@ -11,16 +15,7 @@ export type RunStreamInput = {
   modelId?: string | null;
 };
 
-export type RunStreamEvent =
-  | { name: "start"; data: { agentCount: number } }
-  | { name: "activity"; data: Activity }
-  | { name: "agent-done"; data: AgentResult }
-  | { name: "simulation-complete"; data: { posts: number; comments: number } }
-  | { name: "report-start"; data: Record<string, unknown> }
-  | { name: "report-done"; data: { markdown: string | null; error?: string } }
-  | { name: "saved"; data: { id: string } }
-  | { name: "done"; data: SimulationResult }
-  | { name: "error"; data: { error: string } };
+export type { RunStreamEvent, RunStreamEventMap };
 
 export class RunStreamUnauthorizedError extends Error {
   constructor() {
@@ -43,26 +38,16 @@ function parseChunk(chunk: string): RunStreamEvent | null {
   const dataLine = chunk.match(/^data:\s*(.*)$/m);
   if (!eventLine || !dataLine) return null;
   const name = eventLine[1].trim();
+  if (!isRunStreamEventName(name)) return null;
   let data: unknown;
   try {
     data = JSON.parse(dataLine[1]);
   } catch {
     return null;
   }
-  switch (name) {
-    case "start":
-    case "activity":
-    case "agent-done":
-    case "simulation-complete":
-    case "report-start":
-    case "report-done":
-    case "saved":
-    case "done":
-    case "error":
-      return { name, data } as RunStreamEvent;
-    default:
-      return null;
-  }
+  // The server emits payloads matching RunStreamEventMap[name]; we trust the
+  // contract here rather than re-validating each shape on the client.
+  return { name, data } as RunStreamEvent;
 }
 
 export async function* openRunStream(
