@@ -10,6 +10,7 @@ import { generateReport, type ReportResult } from "./report.js";
 import type { ActivityEvent } from "./tools.js";
 import prisma from "./resources/prisma.js";
 import cryptr from "./resources/cryptr.js";
+import { encryptedKeySchema } from "./encryptedKey.js";
 
 const app = express();
 app.use(cors());
@@ -28,7 +29,7 @@ if (!process.env.OPENROUTER_API_KEY) {
 
 const requestSchema = z.object({
   source: z.string().min(1).max(20000),
-  encryptedKey: z.string().min(1),
+  encryptedKey: encryptedKeySchema,
   agentCount: z.number().int().min(1).max(50).default(10),
   maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
   durationSec: z.number().int().min(10).max(300).default(30),
