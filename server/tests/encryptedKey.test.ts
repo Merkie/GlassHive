@@ -3,7 +3,7 @@ import {
   encryptedKeySchema,
   ENCRYPTED_KEY_MIN,
   ENCRYPTED_KEY_MAX,
-} from "../src/encryptedKey.js";
+} from "../src/runRequestSchema.js";
 
 const hex = (n: number) => "a".repeat(n);
 

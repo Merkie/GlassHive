@@ -13,3 +13,16 @@ export const encryptedKeySchema = z
   .max(ENCRYPTED_KEY_MAX)
   .regex(/^[0-9a-f]+$/, "must be lowercase hex")
   .refine((s) => s.length % 2 === 0, "must be even-length hex");
+
+export const runRequestSchema = z.object({
+  source: z.string().min(1).max(20000),
+  encryptedKey: encryptedKeySchema,
+  agentCount: z.number().int().min(1).max(50).default(10),
+  maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
+  durationSec: z.number().int().min(10).max(300).default(30),
+  mode: z.enum(["requeue", "random"]).default("requeue"),
+  persistentMemory: z.boolean().default(true),
+  modelId: z.string().min(1).max(200).optional(),
+});
+
+export type RunRequest = z.infer<typeof runRequestSchema>;

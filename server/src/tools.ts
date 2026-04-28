@@ -6,6 +6,9 @@ import {
   UnknownEntityError,
   type SortMode,
 } from "./frontpage.js";
+import type { ActivityEvent } from "../../shared/contracts.js";
+
+export type { ActivityEvent } from "../../shared/contracts.js";
 
 export interface ToolContext {
   fp: Frontpage;
@@ -14,16 +17,6 @@ export interface ToolContext {
   // orchestrator can stream progress to the client / log activity.
   onActivity?: (event: ActivityEvent) => void;
 }
-
-export type ActivityEvent =
-  | { kind: "post-created"; postId: string; username: string; title: string }
-  | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string; body: string }
-  | { kind: "vote"; entityId: string; username: string; type: "up" | "down"; result: "set" | "cleared" | "switched" }
-  | { kind: "tool-error"; tool: string; username: string; error: string }
-  // Synthesized milestone markers — not emitted by tools but pushed by the
-  // run handler so the saved activity log replays the same phase banners
-  // the user saw live.
-  | { kind: "phase"; label: string; tone: "info" | "success" | "start" | "error" };
 
 const sortSchema = z
   .enum(["top", "new", "controversial"])

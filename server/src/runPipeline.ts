@@ -7,7 +7,7 @@ import {
   type SimulationResult,
 } from "./runSimulation.js";
 import { generateReport, type ReportResult } from "./report.js";
-import type { ActivityEvent } from "./tools.js";
+import type { ActivityEvent, SimulationMode } from "../../shared/contracts.js";
 import type { Profile } from "./profiles.js";
 import prisma from "./resources/prisma.js";
 
@@ -16,7 +16,7 @@ export interface PipelineRequest {
   agentCount: number;
   maxStepsPerAgent: number;
   durationSec: number;
-  mode: "requeue" | "random";
+  mode: SimulationMode;
   persistentMemory: boolean;
   modelId?: string;
 }
