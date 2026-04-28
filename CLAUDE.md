@@ -34,11 +34,12 @@ client/                              SolidJS + Vite + Tailwind v4
   src/
     index.tsx                        render(<App />)
     app.css                          @import "tailwindcss" + dark-mode body styling
-    App.tsx                          The whole UI — source textarea, sliders (agent count,
-                                     steps/agent, simulation duration), respawn
-                                     mode toggle (Requeue / Random), persistent memory toggle,
-                                     SSE client, live activity feed, threaded comment renderer,
-                                     JSON export.
+    App.tsx                          The whole UI — source textarea, two main sliders
+                                     (Agents, Simulation duration) and a collapsible
+                                     "Advanced settings" panel containing the Agent lifespan
+                                     slider, Respawn mode toggle (Requeue / Random), and
+                                     Persistent agent memory toggle. SSE client, live
+                                     activity feed, threaded comment renderer, JSON export.
 
 server/                              Express + tsx
   .env                               OPENROUTER_API_KEY + PORT
