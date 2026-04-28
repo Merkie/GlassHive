@@ -15,7 +15,6 @@ import {
   TbOutlineHeartbeat,
   TbOutlineKey,
 } from "solid-icons/tb";
-import type { Activity, AgentResult } from "../types";
 import { formatDuration } from "../lib/format";
 import Logo from "../components/Logo";
 import ActivityFeed from "../components/ActivityFeed";
@@ -23,6 +22,7 @@ import KeyGate from "../components/KeyGate";
 import ModelPicker from "../components/ModelPicker";
 import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
 import { getStoredModel, setStoredModel } from "../lib/modelStore";
+import { useRunSimulation } from "../hooks/useRunSimulation";
 
 const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek released a new open-weights model that scores within 2 points of GPT-5 on standard benchmarks while costing roughly 1/30th to train. The release dropped overnight on Hugging Face with a permissive license. Western labs are reportedly scrambling to respond.`;
 
@@ -39,8 +39,6 @@ export default function Home() {
 
   const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
   const [modelId, setModelIdInternal] = createSignal<string | null>(getStoredModel());
-  const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
 
   const setModelId = (id: string | null) => {
     setModelIdInternal(id);
@@ -51,143 +49,36 @@ export default function Home() {
     clearStoredKey();
     setKeyBlob(null);
   };
-  const [activity, setActivity] = createSignal<Activity[]>([]);
-  const [doneAgents, setDoneAgents] = createSignal<AgentResult[]>([]);
-  const [logCollapsed, setLogCollapsed] = createSignal(false);
-  const [remainingSec, setRemainingSec] = createSignal<number | null>(null);
 
-  let timerHandle: ReturnType<typeof setInterval> | undefined;
-  const stopTimer = () => {
-    if (timerHandle !== undefined) {
-      clearInterval(timerHandle);
-      timerHandle = undefined;
-    }
-    setRemainingSec(null);
-  };
-  const startTimer = (totalSec: number) => {
-    stopTimer();
-    const deadline = Date.now() + totalSec * 1000;
-    setRemainingSec(totalSec);
-    timerHandle = setInterval(() => {
-      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-      setRemainingSec(left);
-      if (left <= 0 && timerHandle !== undefined) {
-        clearInterval(timerHandle);
-        timerHandle = undefined;
-      }
-    }, 250);
-  };
+  const {
+    loading,
+    error,
+    activity,
+    doneAgents,
+    logCollapsed,
+    setLogCollapsed,
+    remainingSec,
+    run,
+  } = useRunSimulation({
+    onSaved: (id) => navigate(`/v/${id}`),
+    onUnauthorized: resetKey,
+  });
 
-  const submit = async () => {
+  const submit = () => {
     const text = source().trim();
     if (!text) return;
     const stored = keyBlob();
     if (!stored) return;
-    setLoading(true);
-    setError(null);
-    setActivity([
-      { kind: "phase", label: "Starting simulation…", tone: "start" },
-    ]);
-    setDoneAgents([]);
-    setLogCollapsed(false);
-    startTimer(durationSec());
-
-    try {
-      const res = await fetch("/api/run-stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source: text,
-          encryptedKey: stored.encryptedKey,
-          agentCount: agentCount(),
-          maxStepsPerAgent: maxStepsPerAgent(),
-          durationSec: durationSec(),
-          mode: mode(),
-          persistentMemory: persistentMemory(),
-          ...(modelId() ? { modelId: modelId() } : {}),
-        }),
-      });
-      if (res.status === 401) {
-        resetKey();
-        throw new Error("Saved key was rejected — re-enter your OpenRouter key.");
-      }
-      if (!res.ok || !res.body) {
-        const body = await res.text();
-        throw new Error(`${res.status}: ${body}`);
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let savedId: string | null = null;
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let idx: number;
-        while ((idx = buffer.indexOf("\n\n")) !== -1) {
-          const chunk = buffer.slice(0, idx);
-          buffer = buffer.slice(idx + 2);
-          const eventLine = chunk.match(/^event:\s*(.*)$/m);
-          const dataLine = chunk.match(/^data:\s*(.*)$/m);
-          if (!eventLine || !dataLine) continue;
-          const name = eventLine[1].trim();
-          let data: any;
-          try {
-            data = JSON.parse(dataLine[1]);
-          } catch {
-            continue;
-          }
-          if (name === "activity") {
-            setActivity((arr) => [...arr, data as Activity]);
-          } else if (name === "agent-done") {
-            setDoneAgents((arr) => [...arr, data as AgentResult]);
-          } else if (name === "simulation-complete") {
-            stopTimer();
-            setActivity((arr) => [
-              ...arr,
-              {
-                kind: "phase",
-                label: `Simulation complete — ${data.posts} posts, ${data.comments} comments`,
-                tone: "success",
-              },
-            ]);
-          } else if (name === "report-start") {
-            setActivity((arr) => [
-              ...arr,
-              { kind: "phase", label: "Writing report…", tone: "info" },
-            ]);
-          } else if (name === "report-done") {
-            if (data.markdown) {
-              setActivity((arr) => [
-                ...arr,
-                { kind: "phase", label: "Report ready", tone: "success" },
-              ]);
-            } else {
-              setActivity((arr) => [
-                ...arr,
-                {
-                  kind: "phase",
-                  label: `Report skipped${data.error ? `: ${data.error}` : ""}`,
-                  tone: "info",
-                },
-              ]);
-            }
-          } else if (name === "saved") {
-            savedId = data.id;
-          } else if (name === "error") {
-            setError(data.error ?? "unknown error");
-          }
-        }
-      }
-      if (savedId) {
-        navigate(`/v/${savedId}`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      stopTimer();
-      setLoading(false);
-    }
+    void run({
+      source: text,
+      encryptedKey: stored.encryptedKey,
+      agentCount: agentCount(),
+      maxStepsPerAgent: maxStepsPerAgent(),
+      durationSec: durationSec(),
+      mode: mode(),
+      persistentMemory: persistentMemory(),
+      modelId: modelId(),
+    });
   };
 
   return (
