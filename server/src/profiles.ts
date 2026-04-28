@@ -102,7 +102,7 @@ const PREFIXES = ["", "the_", "real_", "u_", "iam_", "mr_", "ms_", "lord_", "dr_
 // year-of-birth tails. Picking from a small pool of patterns gives the
 // agents handles that read like a real comment section without needing
 // the LLM to invent them.
-function deriveUsername(id: string, fullName: string, age: number): string {
+export function deriveUsername(id: string, fullName: string, age: number): string {
   const first =
     fullName
       .split(/\s+/)[0]

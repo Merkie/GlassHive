@@ -18,7 +18,13 @@ export type { SimulationMode };
 
 export interface SimulationOptions {
   source: string;
+  // Pool to sample from when `participants` is not supplied. Ignored when
+  // `participants` is passed (caller has already resolved the roster, e.g.
+  // tailored agents generated for this run).
   pool: Profile[];
+  // Pre-resolved roster. When set, sampling is skipped and these profiles
+  // are used as-is. Length must equal `agentCount`.
+  participants?: Profile[];
   apiKey: string;
   agentCount: number;
   // Hard cap on tool-using steps per agent SESSION. In requeue/random
@@ -71,6 +77,7 @@ export async function runSimulation(opts: SimulationOptions): Promise<Simulation
   const {
     source,
     pool,
+    participants: preResolved,
     apiKey,
     agentCount,
     maxStepsPerAgent = 12,
@@ -85,15 +92,20 @@ export async function runSimulation(opts: SimulationOptions): Promise<Simulation
   if (!source.trim()) throw new Error("source must not be empty");
   if (!apiKey) throw new Error("apiKey is required");
   if (agentCount < 1) throw new Error("agentCount must be at least 1");
-  if (pool.length < agentCount) {
+  if (!preResolved && pool.length < agentCount) {
     throw new Error(`pool has ${pool.length} profiles but ${agentCount} were requested`);
+  }
+  if (preResolved && preResolved.length !== agentCount) {
+    throw new Error(
+      `participants has ${preResolved.length} profiles but agentCount is ${agentCount}`
+    );
   }
 
   const openrouter = createOpenRouter({ apiKey });
   const model = openrouter.chat(modelId);
 
   const fp = new Frontpage();
-  const participants = sampleProfiles(pool, agentCount);
+  const participants = preResolved ?? sampleProfiles(pool, agentCount);
   const startedAt = Date.now();
   const deadline = startedAt + durationSec * 1000;
   // 30% of the room is online at once, capped at 10 to keep us under

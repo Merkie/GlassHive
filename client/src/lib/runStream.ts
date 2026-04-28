@@ -12,6 +12,7 @@ export type RunStreamInput = {
   durationSec: number;
   mode: "requeue" | "random";
   persistentMemory: boolean;
+  tailoredAgents: boolean;
   modelId?: string | null;
   reportModelId?: string | null;
 };
@@ -63,6 +64,7 @@ export async function* openRunStream(input: RunStreamInput): AsyncGenerator<RunS
       durationSec: input.durationSec,
       mode: input.mode,
       persistentMemory: input.persistentMemory,
+      tailoredAgents: input.tailoredAgents,
       ...(input.modelId ? { modelId: input.modelId } : {}),
       ...(input.reportModelId ? { reportModelId: input.reportModelId } : {}),
     }),

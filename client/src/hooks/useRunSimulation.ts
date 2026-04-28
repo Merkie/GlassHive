@@ -15,6 +15,7 @@ export type UseRunSimulationOptions = {
 
 export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
   const [loading, setLoading] = createSignal(false);
+  const [generatingAgents, setGeneratingAgents] = createSignal(false);
   const [reporting, setReporting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [activity, setActivity] = createSignal<Activity[]>([]);
@@ -51,6 +52,28 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
         return;
       case "agent-done":
         setDoneAgents((arr) => [...arr, event.data]);
+        return;
+      case "agents-generating-start":
+        setGeneratingAgents(true);
+        setActivity((arr) => [
+          ...arr,
+          {
+            kind: "phase",
+            label: `Generating ${event.data.count} tailored agents…`,
+            tone: "info",
+          },
+        ]);
+        return;
+      case "agents-generating-done":
+        setGeneratingAgents(false);
+        setActivity((arr) => [
+          ...arr,
+          {
+            kind: "phase",
+            label: `Generated ${event.data.count} tailored agents`,
+            tone: "success",
+          },
+        ]);
         return;
       case "simulation-complete":
         stopTimer();
@@ -94,6 +117,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
 
   const run = async (input: RunStreamInput) => {
     setLoading(true);
+    setGeneratingAgents(false);
     setReporting(false);
     setError(null);
     setActivity([{ kind: "phase", label: "Starting simulation…", tone: "start" }]);
@@ -122,6 +146,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
     } finally {
       stopTimer();
       setLoading(false);
+      setGeneratingAgents(false);
       setReporting(false);
     }
   };
@@ -130,6 +155,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
 
   return {
     loading,
+    generatingAgents,
     reporting,
     error,
     activity,

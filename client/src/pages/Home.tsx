@@ -14,6 +14,8 @@ import {
   TbOutlineBrain,
   TbOutlineHeartbeat,
   TbOutlineCpu,
+  TbOutlineAlertTriangle,
+  TbOutlineWand,
 } from "solid-icons/tb";
 import { formatDuration } from "../lib/format";
 import Logo from "../components/Logo";
@@ -41,7 +43,11 @@ export default function Home() {
   const [durationSec, setDurationSec] = createSignal(30);
   const [mode, setMode] = createSignal<"requeue" | "random">("requeue");
   const [persistentMemory, setPersistentMemory] = createSignal(true);
+  const [tailoredAgents, setTailoredAgents] = createSignal(false);
   const [showAdvanced, setShowAdvanced] = createSignal(false);
+  const [confirmOpen, setConfirmOpen] = createSignal(false);
+
+  const tailoredHighRisk = () => tailoredAgents() && agentCount() >= 20;
 
   const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
   const [agentModelId, setAgentModelInternal] = createSignal<string | null>(getStoredAgentModel());
@@ -65,6 +71,7 @@ export default function Home() {
 
   const {
     loading,
+    generatingAgents,
     reporting,
     error,
     activity,
@@ -78,7 +85,7 @@ export default function Home() {
     onUnauthorized: resetKey,
   });
 
-  const submit = () => {
+  const startRun = () => {
     const text = source().trim();
     if (!text) return;
     const stored = keyBlob();
@@ -91,9 +98,18 @@ export default function Home() {
       durationSec: durationSec(),
       mode: mode(),
       persistentMemory: persistentMemory(),
+      tailoredAgents: tailoredAgents(),
       modelId: agentModelId(),
       reportModelId: reportModelId(),
     });
+  };
+
+  const submit = () => {
+    if (tailoredHighRisk()) {
+      setConfirmOpen(true);
+      return;
+    }
+    startRun();
   };
 
   return (
@@ -143,16 +159,26 @@ export default function Home() {
             />
 
             <div class="mt-5 grid gap-5 sm:grid-cols-2">
-              <Slider
-                label="Agents"
-                value={agentCount()}
-                min={1}
-                max={50}
-                onChange={setAgentCount}
-                disabled={loading()}
-                accent="text-orange-400"
-                icon={<TbOutlineUsers size={16} class="text-neutral-500" />}
-              />
+              <div>
+                <Slider
+                  label="Agents"
+                  value={agentCount()}
+                  min={1}
+                  max={50}
+                  onChange={setAgentCount}
+                  disabled={loading()}
+                  accent="text-orange-400"
+                  icon={<TbOutlineUsers size={16} class="text-neutral-500" />}
+                />
+                <Show when={tailoredHighRisk()}>
+                  <p class="mt-2 inline-flex items-start gap-1 text-[11px] text-amber-400">
+                    <TbOutlineAlertTriangle size={12} class="mt-0.5 shrink-0" />
+                    <span>
+                      Tailored generation can hallucinate or repeat archetypes at 20+ agents.
+                    </span>
+                  </p>
+                </Show>
+              </div>
               <Slider
                 label="Simulation duration"
                 value={durationSec()}
@@ -251,6 +277,31 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
+
+                  <div>
+                    <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                      <TbOutlineWand size={16} class="text-neutral-500" />
+                      Generate tailored agents
+                      <span class="ml-1 inline-flex items-center rounded border border-orange-500/40 bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-300">
+                        Experimental
+                      </span>
+                    </label>
+                    <div class="mt-2 flex items-center gap-3">
+                      <Toggle
+                        on={tailoredAgents()}
+                        disabled={loading()}
+                        onToggle={() => setTailoredAgents((v) => !v)}
+                      />
+                      <span class="text-sm font-semibold text-neutral-200">
+                        {tailoredAgents() ? "On" : "Off"}
+                      </span>
+                    </div>
+                    <p class="mt-2 text-xs italic text-neutral-500">
+                      {tailoredAgents()
+                        ? "Generates a custom roster of personas tailored to the source instead of sampling the on-disk pool"
+                        : "Samples random personas from the on-disk pool"}
+                    </p>
+                  </div>
                 </div>
               </Show>
             </div>
@@ -284,9 +335,11 @@ export default function Home() {
                   <TbOutlineLoader2 size={18} class="animate-spin" />
                 </Show>
                 {loading()
-                  ? reporting()
-                    ? "Finishing up…"
-                    : "The room is talking…"
+                  ? generatingAgents()
+                    ? "Generating agents…"
+                    : reporting()
+                      ? "Finishing up…"
+                      : "The room is talking…"
                   : "Generate"}
               </button>
             </div>
@@ -308,6 +361,46 @@ export default function Home() {
           isLive={loading()}
         />
       </div>
+
+      <Show when={confirmOpen()}>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div class="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl">
+            <div class="flex items-start gap-3">
+              <TbOutlineAlertTriangle size={20} class="mt-0.5 shrink-0 text-amber-400" />
+              <div>
+                <h2 class="text-base font-semibold text-neutral-100">
+                  Generate {agentCount()} tailored agents?
+                </h2>
+                <p class="mt-2 text-sm text-neutral-400">
+                  At 20+ agents the model can hallucinate or repeat archetypes, which makes the
+                  room less useful. Lower the count for cleaner output, or continue if you know
+                  what you're trading.
+                </p>
+              </div>
+            </div>
+            <div class="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                class="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-800 hover:text-neutral-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmOpen(false);
+                  startRun();
+                }}
+                class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-orange-400"
+              >
+                <TbOutlineSparkles size={16} />
+                Generate anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
     </div>
   );
 }

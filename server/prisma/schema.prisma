@@ -12,18 +12,20 @@ datasource db {
 // snapshot tree, the markdown report, and totals. No relations; this table
 // is the entire persistence layer.
 model Run {
-  id               String   @id
-  source           String
-  agentCount       Int
-  maxStepsPerAgent Int
-  durationSec      Int
-  mode             String
-  persistentMemory Boolean
-  participants     String   // JSON: Participant[]
-  agentResults     String   // JSON: AgentResult[]
-  snapshot         String   // JSON: Snapshot
-  activity         String   // JSON: Activity[] — the live feed, replayed from storage
-  report           String?  // markdown, may be null
-  totals           String   // JSON: { costUsd, inputTokens, outputTokens, posts, comments, elapsedMs }
-  createdAt        DateTime @default(now())
+  id                String   @id
+  source            String
+  agentCount        Int
+  maxStepsPerAgent  Int
+  durationSec       Int
+  mode              String
+  persistentMemory  Boolean
+  tailoredAgents    Boolean  @default(false)
+  participants      String   // JSON: Participant[]
+  agentResults      String   // JSON: AgentResult[]
+  snapshot          String   // JSON: Snapshot
+  activity          String   // JSON: Activity[] — the live feed, replayed from storage
+  report            String?  // markdown, may be null
+  totals            String   // JSON: { costUsd, inputTokens, outputTokens, posts, comments, elapsedMs }
+  generatedProfiles String?  // JSON: GeneratedProfile[] — only set when tailoredAgents=true
+  createdAt         DateTime @default(now())
 }

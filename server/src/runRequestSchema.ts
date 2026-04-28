@@ -22,6 +22,7 @@ export const runRequestSchema = z.object({
   durationSec: z.number().int().min(10).max(300).default(30),
   mode: z.enum(["requeue", "random"]).default("requeue"),
   persistentMemory: z.boolean().default(true),
+  tailoredAgents: z.boolean().default(false),
   modelId: z.string().min(1).max(200).optional(),
   reportModelId: z.string().min(1).max(200).optional(),
 });

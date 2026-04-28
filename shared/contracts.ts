@@ -69,6 +69,22 @@ export type Participant = {
   location: string;
 };
 
+// A persona generated on-demand by the LLM for a run with tailoredAgents=true.
+// Mirrors the on-disk profile shape minus the `raw` markdown blob, since the
+// raw is reconstructed server-side and isn't useful to clients.
+export type GeneratedProfile = {
+  username: string;
+  name: string;
+  age: number;
+  occupation: string;
+  location: string;
+  politics: string;
+  religion: string;
+  personality: string;
+  interests: string;
+  bio: string;
+};
+
 export type AgentResult = {
   username: string;
   steps: number;
@@ -95,6 +111,9 @@ export type SimulationResult = {
   agentResults: AgentResult[];
   snapshot: Snapshot;
   report?: string | null;
+  // Set when the run was started with tailoredAgents=true. Null/absent for
+  // runs that drew from the on-disk profile pool.
+  generatedProfiles?: GeneratedProfile[] | null;
   totals: Totals;
 };
 
@@ -108,6 +127,7 @@ export type RunSettings = {
   durationSec: number;
   mode: SimulationMode;
   persistentMemory: boolean;
+  tailoredAgents: boolean;
 };
 
 export type RunRecord = {
@@ -119,6 +139,7 @@ export type RunRecord = {
   snapshot: Snapshot;
   activity: ActivityEvent[];
   report: string | null;
+  generatedProfiles: GeneratedProfile[] | null;
   totals: Totals;
   createdAt: string;
 };
@@ -130,6 +151,8 @@ export type RunRecord = {
 // until both ends are updated, which is the whole point of the contract.
 export type RunStreamEventMap = {
   start: { agentCount: number };
+  "agents-generating-start": { count: number };
+  "agents-generating-done": { count: number };
   activity: ActivityEvent;
   "agent-done": AgentResult;
   "simulation-complete": { posts: number; comments: number };
@@ -148,6 +171,8 @@ export type RunStreamEvent = {
 
 export const RUN_STREAM_EVENT_NAMES = [
   "start",
+  "agents-generating-start",
+  "agents-generating-done",
   "activity",
   "agent-done",
   "simulation-complete",
