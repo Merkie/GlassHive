@@ -1,9 +1,4 @@
-import {
-  generateText,
-  stepCountIs,
-  type LanguageModel,
-  type ModelMessage,
-} from "ai";
+import { generateText, stepCountIs, type LanguageModel, type ModelMessage } from "ai";
 import type { Profile } from "./profiles.js";
 import { buildTools, type ActivityEvent } from "./tools.js";
 import type { Frontpage } from "./frontpage.js";
@@ -80,9 +75,7 @@ Now go. Browse, read, vote, reply, and post like ${profile.name} would. Stay in 
 }
 
 function extractCost(providerMetadata: unknown): number {
-  const pm = providerMetadata as
-    | { openrouter?: { usage?: { cost?: number } } }
-    | undefined;
+  const pm = providerMetadata as { openrouter?: { usage?: { cost?: number } } } | undefined;
   const cost = pm?.openrouter?.usage?.cost;
   return typeof cost === "number" ? cost : 0;
 }
@@ -93,16 +86,7 @@ const FIRST_VISIT_USER = (name: string) =>
 const RETURN_VISIT_USER = `You're back on the forum. Time has passed; there may be new posts and replies (including replies to YOUR comments). Pull the latest state with get_posts and/or get_post, react to anything new — vote, reply, maybe start a fresh post if the thread has shifted. Stay in character. Don't repeat what you already said earlier. Don't ask me anything; just start using the tools.`;
 
 export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
-  const {
-    profile,
-    source,
-    fp,
-    model,
-    maxSteps,
-    deadline,
-    onActivity,
-    priorMessages,
-  } = opts;
+  const { profile, source, fp, model, maxSteps, deadline, onActivity, priorMessages } = opts;
   if (Date.now() >= deadline) {
     return {
       username: profile.username,
@@ -127,22 +111,18 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
         ];
 
   try {
-    const { response, totalUsage, finishReason, providerMetadata, steps } =
-      await generateText({
-        model,
-        tools,
-        stopWhen: stepCountIs(maxSteps),
-        providerOptions: {
-          openrouter: { usage: { include: true } },
-        },
-        messages: inputMessages,
-      });
+    const { response, totalUsage, finishReason, providerMetadata, steps } = await generateText({
+      model,
+      tools,
+      stopWhen: stepCountIs(maxSteps),
+      providerOptions: {
+        openrouter: { usage: { include: true } },
+      },
+      messages: inputMessages,
+    });
 
     const costUsd = extractCost(providerMetadata);
-    const fullHistory: ModelMessage[] = [
-      ...inputMessages,
-      ...(response.messages ?? []),
-    ];
+    const fullHistory: ModelMessage[] = [...inputMessages, ...(response.messages ?? [])];
     return {
       username: profile.username,
       steps: steps.length,

@@ -8,15 +8,8 @@ import { runPipeline } from "./runPipeline.js";
 import prisma from "./resources/prisma.js";
 import cryptr from "./resources/cryptr.js";
 import { runRequestSchema } from "./runRequestSchema.js";
-import type {
-  RunRecord,
-  RunStreamEventMap,
-  RunStreamEventName,
-} from "../../shared/contracts.js";
-import {
-  searchOpenRouterModels,
-  trimModelForClient,
-} from "./openrouter-models.js";
+import type { RunRecord, RunStreamEventMap, RunStreamEventName } from "../../shared/contracts.js";
+import { searchOpenRouterModels, trimModelForClient } from "./openrouter-models.js";
 
 const app = express();
 app.use(cors());
@@ -57,10 +50,7 @@ function resolveApiKey(encryptedKey: string): { apiKey: string; mode: "user" | "
 // Typed wrapper around `res.write` so adding an event in the contract is a
 // compile error here until the emit site is updated.
 function makeSseSender(res: Response) {
-  return <K extends RunStreamEventName>(
-    name: K,
-    data: RunStreamEventMap[K]
-  ) => {
+  return <K extends RunStreamEventName>(name: K, data: RunStreamEventMap[K]) => {
     res.write(`event: ${name}\n`);
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
@@ -110,9 +100,7 @@ app.get("/api/models", async (req, res) => {
 app.post("/api/encrypt-key", async (req, res) => {
   const parsed = encryptKeySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res
-      .status(400)
-      .json({ error: "invalid request", detail: parsed.error.issues });
+    return res.status(400).json({ error: "invalid request", detail: parsed.error.issues });
   }
   const { key } = parsed.data;
   const isAdmin = key === ADMIN_PASSWORD;
@@ -141,9 +129,7 @@ app.get("/api/profiles", (_req, res) => {
 app.post("/api/run", async (req, res) => {
   const parsed = runRequestSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res
-      .status(400)
-      .json({ error: "invalid request", detail: parsed.error.issues });
+    return res.status(400).json({ error: "invalid request", detail: parsed.error.issues });
   }
   const { encryptedKey, ...request } = parsed.data;
   let resolved: { apiKey: string; mode: "user" | "admin" };
@@ -177,9 +163,7 @@ app.post("/api/run", async (req, res) => {
 app.post("/api/run-stream", async (req, res) => {
   const parsed = runRequestSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res
-      .status(400)
-      .json({ error: "invalid request", detail: parsed.error.issues });
+    return res.status(400).json({ error: "invalid request", detail: parsed.error.issues });
   }
   const { encryptedKey, ...request } = parsed.data;
   let resolved: { apiKey: string; mode: "user" | "admin" };

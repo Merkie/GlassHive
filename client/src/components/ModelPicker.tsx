@@ -1,10 +1,4 @@
-import {
-  createSignal,
-  createEffect,
-  onCleanup,
-  For,
-  Show,
-} from "solid-js";
+import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
 import {
   TbOutlineCpu,
   TbOutlineChevronDown,
@@ -71,11 +65,7 @@ export default function ModelPicker(props: Props) {
   let searchDebounce: ReturnType<typeof setTimeout> | null = null;
   let loadedOnce = false;
 
-  async function fetchPage(args: {
-    offset: number;
-    search: string;
-    append: boolean;
-  }) {
+  async function fetchPage(args: { offset: number; search: string; append: boolean }) {
     if (args.append) setIsLoadingMore(true);
     else setIsLoading(true);
     setError("");
@@ -137,15 +127,9 @@ export default function ModelPicker(props: Props) {
 
   const onScroll = (e: Event) => {
     const target = e.currentTarget as HTMLDivElement;
-    const scrollBottom =
-      target.scrollHeight - target.scrollTop - target.clientHeight;
+    const scrollBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
     const offset = nextOffset();
-    if (
-      scrollBottom < 200 &&
-      hasMore() &&
-      !isLoadingMore() &&
-      offset != null
-    ) {
+    if (scrollBottom < 200 && hasMore() && !isLoadingMore() && offset != null) {
       void fetchPage({ offset, search: search(), append: true });
     }
   };
@@ -180,9 +164,7 @@ export default function ModelPicker(props: Props) {
         >
           <div class="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
             <div class="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
-              <h2 class="text-base font-semibold text-neutral-100">
-                Pick a model
-              </h2>
+              <h2 class="text-base font-semibold text-neutral-100">Pick a model</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -221,10 +203,7 @@ export default function ModelPicker(props: Props) {
                 when={!isLoading()}
                 fallback={
                   <div class="flex items-center justify-center py-12">
-                    <TbOutlineLoader2
-                      size={24}
-                      class="animate-spin text-orange-500"
-                    />
+                    <TbOutlineLoader2 size={24} class="animate-spin text-orange-500" />
                   </div>
                 }
               >
@@ -290,9 +269,7 @@ export default function ModelPicker(props: Props) {
                               <span> /M in</span>
                               <span class="mx-1 text-neutral-700">·</span>
                               <span class="font-mono">
-                                {formatPricePerMillion(
-                                  model.pricing.completion,
-                                )}
+                                {formatPricePerMillion(model.pricing.completion)}
                               </span>
                               <span> /M out</span>
                             </div>
@@ -319,14 +296,8 @@ export default function ModelPicker(props: Props) {
                     </div>
                   </Show>
 
-                  <Show
-                    when={
-                      !hasMore() && !isLoadingMore() && models().length > 0
-                    }
-                  >
-                    <div class="py-4 text-center text-[11px] text-neutral-600">
-                      End of list
-                    </div>
+                  <Show when={!hasMore() && !isLoadingMore() && models().length > 0}>
+                    <div class="py-4 text-center text-[11px] text-neutral-600">End of list</div>
                   </Show>
                 </Show>
               </Show>

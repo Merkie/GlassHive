@@ -38,9 +38,7 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = createSignal(false);
 
   const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
-  const [modelId, setModelIdInternal] = createSignal<string | null>(
-    getStoredModel(),
-  );
+  const [modelId, setModelIdInternal] = createSignal<string | null>(getStoredModel());
 
   const setModelId = (id: string | null) => {
     setModelIdInternal(id);
@@ -52,19 +50,11 @@ export default function Home() {
     setKeyBlob(null);
   };
 
-  const {
-    loading,
-    error,
-    activity,
-    doneAgents,
-    logCollapsed,
-    setLogCollapsed,
-    remainingSec,
-    run,
-  } = useRunSimulation({
-    onSaved: (id) => navigate(`/v/${id}`),
-    onUnauthorized: resetKey,
-  });
+  const { loading, error, activity, doneAgents, logCollapsed, setLogCollapsed, remainingSec, run } =
+    useRunSimulation({
+      onSaved: (id) => navigate(`/v/${id}`),
+      onUnauthorized: resetKey,
+    });
 
   const submit = () => {
     const text = source().trim();
@@ -90,16 +80,12 @@ export default function Home() {
           <div>
             <Logo />
             <p class="mt-3 mb-2 text-sm text-neutral-400">
-              Drop in source material. Watch a roomful of AI agents argue about
-              it in a fake comment section.
+              Drop in source material. Watch a roomful of AI agents argue about it in a fake comment
+              section.
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <ModelPicker
-              value={modelId()}
-              onChange={setModelId}
-              disabled={loading()}
-            />
+            <ModelPicker value={modelId()} onChange={setModelId} disabled={loading()} />
             <Show when={keyBlob()}>
               {(blob) => (
                 <button
@@ -110,9 +96,7 @@ export default function Home() {
                   title="Clear saved key and re-enter"
                 >
                   <TbOutlineKey size={14} class="text-neutral-500" />
-                  {blob().mode === "admin"
-                    ? "Host admin"
-                    : "Your OpenRouter key"}
+                  {blob().mode === "admin" ? "Host admin" : "Your OpenRouter key"}
                   <span class="text-neutral-600">· change</span>
                 </button>
               )}
@@ -178,9 +162,7 @@ export default function Home() {
                   size={16}
                   class="text-neutral-500 transition-transform"
                   style={{
-                    transform: showAdvanced()
-                      ? "rotate(90deg)"
-                      : "rotate(0deg)",
+                    transform: showAdvanced() ? "rotate(90deg)" : "rotate(0deg)",
                   }}
                 />
               </button>
@@ -195,9 +177,7 @@ export default function Home() {
                     disabled={loading()}
                     accent="text-orange-400"
                     unit="steps"
-                    icon={
-                      <TbOutlineHeartbeat size={16} class="text-neutral-500" />
-                    }
+                    icon={<TbOutlineHeartbeat size={16} class="text-neutral-500" />}
                   />
 
                   <div class="grid gap-5 md:grid-cols-2">
@@ -262,10 +242,7 @@ export default function Home() {
                 disabled={loading() || !source().trim() || !keyBlob()}
                 class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <Show
-                  when={loading()}
-                  fallback={<TbOutlineSparkles size={18} />}
-                >
+                <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
                   <TbOutlineLoader2 size={18} class="animate-spin" />
                 </Show>
                 {loading() ? "The room is talking…" : "Generate"}
@@ -317,11 +294,7 @@ function ModeButton(props: {
   );
 }
 
-function Toggle(props: {
-  on: boolean;
-  disabled: boolean;
-  onToggle: () => void;
-}) {
+function Toggle(props: { on: boolean; disabled: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
@@ -370,9 +343,7 @@ function Slider(props: {
               <>
                 {props.value}
                 <Show when={props.unit}>
-                  <span class="ml-1 text-sm font-normal text-neutral-400">
-                    {props.unit}
-                  </span>
+                  <span class="ml-1 text-sm font-normal text-neutral-400">{props.unit}</span>
                 </Show>
               </>
             }
@@ -387,9 +358,7 @@ function Slider(props: {
         max={props.max}
         step={props.step ?? 1}
         value={props.value}
-        onInput={(e) =>
-          props.onChange(Number.parseInt(e.currentTarget.value, 10))
-        }
+        onInput={(e) => props.onChange(Number.parseInt(e.currentTarget.value, 10))}
         disabled={props.disabled}
         class="mt-2 w-full accent-orange-500"
       />

@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  Frontpage,
-  SelfVoteError,
-  UnknownEntityError,
-} from "../src/frontpage.js";
+import { Frontpage, SelfVoteError, UnknownEntityError } from "../src/frontpage.js";
 
 // Deterministic clock so we can assert ordering by createdAt without sleeps.
 function makeClock() {
@@ -63,9 +59,7 @@ describe("Frontpage", () => {
     });
 
     it("rejects replies to unknown entities", () => {
-      expect(() => fp.createComment("bob", "missing", "x")).toThrow(
-        UnknownEntityError
-      );
+      expect(() => fp.createComment("bob", "missing", "x")).toThrow(UnknownEntityError);
     });
   });
 
@@ -171,11 +165,7 @@ describe("Frontpage", () => {
     });
 
     it("includes preview, comment count, and votes per post", () => {
-      const post = fp.createPost(
-        "alice",
-        "title",
-        "x".repeat(500)
-      );
+      const post = fp.createPost("alice", "title", "x".repeat(500));
       fp.createComment("bob", post.id, "c1");
       fp.createComment("carol", post.id, "c2");
       fp.vote("bob", post.id, "up");

@@ -15,5 +15,5 @@ render(
       <Route path="/v/:id" component={View} />
     </Router>
   ),
-  root,
+  root
 );

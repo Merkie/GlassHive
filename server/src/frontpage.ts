@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-export type EntityKind = "post" | "comment";
-
 export interface Post {
   id: string;
   kind: "post";
@@ -159,7 +157,7 @@ export class Frontpage {
     return { up, down, karma: up - down };
   }
 
-  countCommentsFor(postId: string): number {
+  private countCommentsFor(postId: string): number {
     let n = 0;
     for (const c of this.comments.values()) {
       if (c.postId === postId) n++;
@@ -198,35 +196,7 @@ export class Frontpage {
         commentCount: this.countCommentsFor(p.id),
       });
     }
-    return sortSummaries(all, sort).slice(0, limit);
-  }
-
-  // Flat list of comments under a post, sorted. Used when an agent wants
-  // a quick sortable view rather than the nested tree.
-  listComments(
-    postId: string,
-    opts: { sort?: SortMode; limit?: number } = {}
-  ): CommentNode[] {
-    if (!this.posts.has(postId)) throw new UnknownEntityError(postId);
-    const sort = opts.sort ?? "top";
-    const limit = opts.limit ?? 50;
-    const flat: CommentNode[] = [];
-    for (const c of this.comments.values()) {
-      if (c.postId !== postId) continue;
-      const v = this.voteCounts(c.id);
-      flat.push({
-        id: c.id,
-        authorUsername: c.authorUsername,
-        body: c.body,
-        createdAt: c.createdAt,
-        parentId: c.parentId,
-        karma: v.karma,
-        upvotes: v.up,
-        downvotes: v.down,
-        replies: [],
-      });
-    }
-    return sortNodes(flat, sort).slice(0, limit);
+    return sortByMode(all, sort).slice(0, limit);
   }
 
   // Nested tree of comments under a post. Children of a node are sorted
@@ -254,7 +224,7 @@ export class Frontpage {
     }
     const attach = (parentId: string): CommentNode[] => {
       const children = byParent.get(parentId) ?? [];
-      const sorted = sortNodes(children, sort);
+      const sorted = sortByMode(children, sort);
       for (const node of sorted) node.replies = attach(node.id);
       return sorted;
     };
@@ -302,27 +272,14 @@ function controversyScore(up: number, down: number): number {
   return total * balance;
 }
 
-function sortSummaries(items: PostSummary[], sort: SortMode): PostSummary[] {
-  const arr = [...items];
-  if (sort === "new") {
-    arr.sort((a, b) => b.createdAt - a.createdAt);
-  } else if (sort === "controversial") {
-    arr.sort((a, b) => {
-      const ca = controversyScore(a.upvotes, a.downvotes);
-      const cb = controversyScore(b.upvotes, b.downvotes);
-      if (ca !== cb) return cb - ca;
-      return b.createdAt - a.createdAt;
-    });
-  } else {
-    arr.sort((a, b) => {
-      if (a.karma !== b.karma) return b.karma - a.karma;
-      return b.createdAt - a.createdAt;
-    });
-  }
-  return arr;
+interface Sortable {
+  createdAt: number;
+  karma: number;
+  upvotes: number;
+  downvotes: number;
 }
 
-function sortNodes(items: CommentNode[], sort: SortMode): CommentNode[] {
+function sortByMode<T extends Sortable>(items: T[], sort: SortMode): T[] {
   const arr = [...items];
   if (sort === "new") {
     arr.sort((a, b) => b.createdAt - a.createdAt);

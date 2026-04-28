@@ -42,8 +42,7 @@ export interface OpenRouterModelSummary {
   created: number;
 }
 
-const OPENROUTER_URL =
-  "https://openrouter.ai/api/v1/models?input_modalities=text";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/models?input_modalities=text";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface ModelsCache {

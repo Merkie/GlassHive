@@ -99,9 +99,7 @@ export default function ActivityFeed(props: {
             style={{ "scroll-behavior": "smooth" }}
           >
             <div class="mt-auto">
-              <For each={props.activity.slice(-80)}>
-                {(e) => <ActivityLine event={e} />}
-              </For>
+              <For each={props.activity.slice(-80)}>{(e) => <ActivityLine event={e} />}</For>
             </div>
           </div>
         </section>

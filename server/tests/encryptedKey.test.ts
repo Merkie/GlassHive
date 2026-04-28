@@ -9,9 +9,7 @@ const hex = (n: number) => "a".repeat(n);
 
 describe("encryptedKeySchema", () => {
   it("accepts a well-formed hex blob at the minimum length", () => {
-    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MIN)).success).toBe(
-      true
-    );
+    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MIN)).success).toBe(true);
   });
 
   it("accepts a typical-length blob (admin password sized plaintext)", () => {
@@ -20,9 +18,7 @@ describe("encryptedKeySchema", () => {
   });
 
   it("accepts a blob at the maximum length", () => {
-    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MAX)).success).toBe(
-      true
-    );
+    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MAX)).success).toBe(true);
   });
 
   it("rejects an empty string", () => {
@@ -30,15 +26,11 @@ describe("encryptedKeySchema", () => {
   });
 
   it("rejects a blob shorter than the cryptr prefix", () => {
-    expect(
-      encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MIN - 2)).success
-    ).toBe(false);
+    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MIN - 2)).success).toBe(false);
   });
 
   it("rejects an oversized blob", () => {
-    expect(
-      encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MAX + 2)).success
-    ).toBe(false);
+    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MAX + 2)).success).toBe(false);
   });
 
   it("rejects non-hex characters", () => {
@@ -57,9 +49,7 @@ describe("encryptedKeySchema", () => {
   });
 
   it("rejects odd-length hex", () => {
-    expect(
-      encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MIN + 1)).success
-    ).toBe(false);
+    expect(encryptedKeySchema.safeParse(hex(ENCRYPTED_KEY_MIN + 1)).success).toBe(false);
   });
 
   it("accepts a real cryptr-shaped blob", async () => {
