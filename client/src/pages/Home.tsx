@@ -24,7 +24,7 @@ import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
 import { getStoredModel, setStoredModel } from "../lib/modelStore";
 import { useRunSimulation } from "../hooks/useRunSimulation";
 
-const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek released a new open-weights model that scores within 2 points of GPT-5 on standard benchmarks while costing roughly 1/30th to train. The release dropped overnight on Hugging Face with a permissive license. Western labs are reportedly scrambling to respond.`;
+const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek has released its flagship V4 model series, featuring a massive 1-million token context window and performance that trails GPT-5.5 by only a few months of development. Dropped overnight on Hugging Face under a permissive MIT license, the 1.6-trillion parameter V4-Pro model delivers frontier-class reasoning at roughly 1/30th the API cost of its Western counterparts. Silicon Valley is reportedly scrambling as the release fundamentally resets the economics of the global AI race.`;
 
 export default function Home() {
   const navigate = useNavigate();
@@ -38,7 +38,9 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = createSignal(false);
 
   const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
-  const [modelId, setModelIdInternal] = createSignal<string | null>(getStoredModel());
+  const [modelId, setModelIdInternal] = createSignal<string | null>(
+    getStoredModel(),
+  );
 
   const setModelId = (id: string | null) => {
     setModelIdInternal(id);
@@ -88,8 +90,8 @@ export default function Home() {
           <div>
             <Logo />
             <p class="mt-3 mb-2 text-sm text-neutral-400">
-              Drop in source material. Watch a roomful of AI agents argue about it
-              in a fake comment section.
+              Drop in source material. Watch a roomful of AI agents argue about
+              it in a fake comment section.
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -108,7 +110,9 @@ export default function Home() {
                   title="Clear saved key and re-enter"
                 >
                   <TbOutlineKey size={14} class="text-neutral-500" />
-                  {blob().mode === "admin" ? "Host admin" : "Your OpenRouter key"}
+                  {blob().mode === "admin"
+                    ? "Host admin"
+                    : "Your OpenRouter key"}
                   <span class="text-neutral-600">· change</span>
                 </button>
               )}
@@ -121,144 +125,153 @@ export default function Home() {
         </Show>
 
         <Show when={keyBlob()}>
-        <section class="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
-          <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
-            <TbOutlineFileText size={16} class="text-neutral-500" />
-            Source material
-          </label>
-          <textarea
-            class="mt-2 min-h-[160px] w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/70 p-3 font-mono text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-orange-500"
-            placeholder="Paste a news article, a tweet, an essay, a Reddit post — anything for the agents to react to."
-            value={source()}
-            onInput={(e) => setSource(e.currentTarget.value)}
-            disabled={loading()}
-          />
-
-          <div class="mt-5 grid gap-5 sm:grid-cols-2">
-            <Slider
-              label="Agents"
-              value={agentCount()}
-              min={1}
-              max={50}
-              onChange={setAgentCount}
+          <section class="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
+            <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+              <TbOutlineFileText size={16} class="text-neutral-500" />
+              Source material
+            </label>
+            <textarea
+              class="mt-2 min-h-[160px] w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/70 p-3 font-mono text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-orange-500"
+              placeholder="Paste a news article, a tweet, an essay, a Reddit post — anything for the agents to react to."
+              value={source()}
+              onInput={(e) => setSource(e.currentTarget.value)}
               disabled={loading()}
-              accent="text-orange-400"
-              icon={<TbOutlineUsers size={16} class="text-neutral-500" />}
             />
-            <Slider
-              label="Simulation duration"
-              value={durationSec()}
-              min={10}
-              max={300}
-              step={10}
-              onChange={setDurationSec}
-              disabled={loading()}
-              accent="text-orange-400"
-              format={formatDuration}
-              icon={<TbOutlineClock size={16} class="text-neutral-500" />}
-            />
-          </div>
 
-          <div class="mt-5 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950/40">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced((v) => !v)}
-              class="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:bg-neutral-900/60"
-              aria-expanded={showAdvanced()}
-            >
-              <span class="flex items-center gap-2">
-                <TbOutlineSettings size={16} class="text-neutral-500" />
-                Advanced settings
-              </span>
-              <TbOutlineChevronRight
-                size={16}
-                class="text-neutral-500 transition-transform"
-                style={{ transform: showAdvanced() ? "rotate(90deg)" : "rotate(0deg)" }}
+            <div class="mt-5 grid gap-5 sm:grid-cols-2">
+              <Slider
+                label="Agents"
+                value={agentCount()}
+                min={1}
+                max={50}
+                onChange={setAgentCount}
+                disabled={loading()}
+                accent="text-orange-400"
+                icon={<TbOutlineUsers size={16} class="text-neutral-500" />}
               />
-            </button>
-            <Show when={showAdvanced()}>
-              <div class="space-y-5 border-t border-neutral-800/60 p-4">
-                <Slider
-                  label="Agent lifespan"
-                  value={maxStepsPerAgent()}
-                  min={1}
-                  max={40}
-                  onChange={setMaxStepsPerAgent}
-                  disabled={loading()}
-                  accent="text-orange-400"
-                  unit="steps"
-                  icon={<TbOutlineHeartbeat size={16} class="text-neutral-500" />}
+              <Slider
+                label="Simulation duration"
+                value={durationSec()}
+                min={10}
+                max={300}
+                step={10}
+                onChange={setDurationSec}
+                disabled={loading()}
+                accent="text-orange-400"
+                format={formatDuration}
+                icon={<TbOutlineClock size={16} class="text-neutral-500" />}
+              />
+            </div>
+
+            <div class="mt-5 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950/40">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                class="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:bg-neutral-900/60"
+                aria-expanded={showAdvanced()}
+              >
+                <span class="flex items-center gap-2">
+                  <TbOutlineSettings size={16} class="text-neutral-500" />
+                  Advanced settings
+                </span>
+                <TbOutlineChevronRight
+                  size={16}
+                  class="text-neutral-500 transition-transform"
+                  style={{
+                    transform: showAdvanced()
+                      ? "rotate(90deg)"
+                      : "rotate(0deg)",
+                  }}
                 />
+              </button>
+              <Show when={showAdvanced()}>
+                <div class="space-y-5 border-t border-neutral-800/60 p-4">
+                  <Slider
+                    label="Agent lifespan"
+                    value={maxStepsPerAgent()}
+                    min={1}
+                    max={40}
+                    onChange={setMaxStepsPerAgent}
+                    disabled={loading()}
+                    accent="text-orange-400"
+                    unit="steps"
+                    icon={
+                      <TbOutlineHeartbeat size={16} class="text-neutral-500" />
+                    }
+                  />
 
-                <div class="grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
-                      <TbOutlineRefresh size={16} class="text-neutral-500" />
-                      Respawn mode
-                    </label>
-                    <div class="mt-2 grid grid-cols-2 gap-2">
-                      <ModeButton
-                        active={mode() === "requeue"}
-                        disabled={loading()}
-                        onClick={() => setMode("requeue")}
-                        label="Requeue"
-                        icon={<TbOutlineRepeat size={16} />}
-                      />
-                      <ModeButton
-                        active={mode() === "random"}
-                        disabled={loading()}
-                        onClick={() => setMode("random")}
-                        label="Random"
-                        icon={<TbOutlineArrowsShuffle size={16} />}
-                      />
+                  <div class="grid gap-5 md:grid-cols-2">
+                    <div>
+                      <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                        <TbOutlineRefresh size={16} class="text-neutral-500" />
+                        Respawn mode
+                      </label>
+                      <div class="mt-2 grid grid-cols-2 gap-2">
+                        <ModeButton
+                          active={mode() === "requeue"}
+                          disabled={loading()}
+                          onClick={() => setMode("requeue")}
+                          label="Requeue"
+                          icon={<TbOutlineRepeat size={16} />}
+                        />
+                        <ModeButton
+                          active={mode() === "random"}
+                          disabled={loading()}
+                          onClick={() => setMode("random")}
+                          label="Random"
+                          icon={<TbOutlineArrowsShuffle size={16} />}
+                        />
+                      </div>
+                      <p class="mt-2 text-xs italic text-neutral-500">
+                        {mode() === "requeue"
+                          ? "Round-robin: each agent waits their turn before being respawned"
+                          : "Any participant fills the next open slot — louder users post more, others post less"}
+                      </p>
                     </div>
-                    <p class="mt-2 text-xs italic text-neutral-500">
-                      {mode() === "requeue"
-                        ? "Round-robin: each agent waits their turn before being respawned"
-                        : "Any participant fills the next open slot — louder users post more, others post less"}
-                    </p>
-                  </div>
 
-                  <div>
-                    <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
-                      <TbOutlineBrain size={16} class="text-neutral-500" />
-                      Persistent agent memory
-                    </label>
-                    <div class="mt-2 flex items-center gap-3">
-                      <Toggle
-                        on={persistentMemory()}
-                        disabled={loading()}
-                        onToggle={() => setPersistentMemory((v) => !v)}
-                      />
-                      <span class="text-sm font-semibold text-neutral-200">
-                        {persistentMemory() ? "On" : "Off"}
-                      </span>
+                    <div>
+                      <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                        <TbOutlineBrain size={16} class="text-neutral-500" />
+                        Persistent agent memory
+                      </label>
+                      <div class="mt-2 flex items-center gap-3">
+                        <Toggle
+                          on={persistentMemory()}
+                          disabled={loading()}
+                          onToggle={() => setPersistentMemory((v) => !v)}
+                        />
+                        <span class="text-sm font-semibold text-neutral-200">
+                          {persistentMemory() ? "On" : "Off"}
+                        </span>
+                      </div>
+                      <p class="mt-2 text-xs italic text-neutral-500">
+                        {persistentMemory()
+                          ? "Agents resume their conversation when respawned"
+                          : "Every respawn boots fresh from the system prompt"}
+                      </p>
                     </div>
-                    <p class="mt-2 text-xs italic text-neutral-500">
-                      {persistentMemory()
-                        ? "Agents resume their conversation when respawned"
-                        : "Every respawn boots fresh from the system prompt"}
-                    </p>
                   </div>
                 </div>
-              </div>
-            </Show>
-          </div>
-
-          <div class="mt-5 flex justify-end">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={loading() || !source().trim() || !keyBlob()}
-              class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
-                <TbOutlineLoader2 size={18} class="animate-spin" />
               </Show>
-              {loading() ? "The room is talking…" : "Generate"}
-            </button>
-          </div>
-        </section>
+            </div>
+
+            <div class="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={loading() || !source().trim() || !keyBlob()}
+                class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Show
+                  when={loading()}
+                  fallback={<TbOutlineSparkles size={18} />}
+                >
+                  <TbOutlineLoader2 size={18} class="animate-spin" />
+                </Show>
+                {loading() ? "The room is talking…" : "Generate"}
+              </button>
+            </div>
+          </section>
         </Show>
 
         <Show when={error()}>
@@ -357,7 +370,9 @@ function Slider(props: {
               <>
                 {props.value}
                 <Show when={props.unit}>
-                  <span class="ml-1 text-sm font-normal text-neutral-400">{props.unit}</span>
+                  <span class="ml-1 text-sm font-normal text-neutral-400">
+                    {props.unit}
+                  </span>
                 </Show>
               </>
             }
@@ -372,7 +387,9 @@ function Slider(props: {
         max={props.max}
         step={props.step ?? 1}
         value={props.value}
-        onInput={(e) => props.onChange(Number.parseInt(e.currentTarget.value, 10))}
+        onInput={(e) =>
+          props.onChange(Number.parseInt(e.currentTarget.value, 10))
+        }
         disabled={props.disabled}
         class="mt-2 w-full accent-orange-500"
       />
