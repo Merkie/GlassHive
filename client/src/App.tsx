@@ -416,8 +416,8 @@ export default function App() {
                   </div>
                   <p class="mt-2 text-xs italic text-neutral-500">
                     {mode() === "requeue"
-                      ? "round-robin: each agent waits their turn before being respawned"
-                      : "any participant fills the next open slot — louder users post more, others post less"}
+                      ? "Round-robin: each agent waits their turn before being respawned"
+                      : "Any participant fills the next open slot — louder users post more, others post less"}
                   </p>
                 </div>
 
@@ -438,8 +438,8 @@ export default function App() {
                   </div>
                   <p class="mt-2 text-xs italic text-neutral-500">
                     {persistentMemory()
-                      ? "agents resume their conversation when respawned"
-                      : "every respawn boots fresh from the system prompt"}
+                      ? "Agents resume their conversation when respawned"
+                      : "Every respawn boots fresh from the system prompt"}
                   </p>
                 </div>
                 </div>
