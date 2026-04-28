@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show } from "solid-js";
+import { createSignal, createEffect, onCleanup, Show, type JSX } from "solid-js";
 import {
   TbOutlineSettings,
   TbOutlineX,
@@ -6,6 +6,7 @@ import {
   TbOutlineCpu,
   TbOutlineRefresh,
   TbOutlineTrash,
+  TbOutlineFileText,
 } from "solid-icons/tb";
 import ModelPicker from "./ModelPicker";
 import { DEFAULT_MODEL_ID } from "../lib/modelStore";
@@ -13,19 +14,23 @@ import type { StoredKey } from "../lib/keyStore";
 
 interface Props {
   keyBlob: StoredKey;
-  modelId: string | null;
-  onChangeModel: (id: string | null) => void;
+  agentModelId: string | null;
+  reportModelId: string | null;
+  onChangeAgentModel: (id: string | null) => void;
+  onChangeReportModel: (id: string | null) => void;
   onResetKey: () => void;
   disabled?: boolean;
 }
 
+type PickerTarget = "agent" | "report" | null;
+
 export default function SettingsModal(props: Props) {
   const [open, setOpen] = createSignal(false);
-  const [pickerOpen, setPickerOpen] = createSignal(false);
+  const [pickerTarget, setPickerTarget] = createSignal<PickerTarget>(null);
 
   // Esc closes the settings modal (the picker handles its own Esc).
   createEffect(() => {
-    if (!open() || pickerOpen()) return;
+    if (!open() || pickerTarget()) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
@@ -38,8 +43,10 @@ export default function SettingsModal(props: Props) {
     setOpen(false);
   };
 
-  const resetModel = () => {
-    props.onChangeModel(null);
+  const onPickerChange = (id: string | null) => {
+    const target = pickerTarget();
+    if (target === "agent") props.onChangeAgentModel(id);
+    else if (target === "report") props.onChangeReportModel(id);
   };
 
   return (
@@ -79,42 +86,21 @@ export default function SettingsModal(props: Props) {
             </div>
 
             <div class="space-y-5 px-5 py-5">
-              <section>
-                <div class="flex items-center justify-between">
-                  <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
-                    <TbOutlineCpu size={14} class="text-neutral-500" />
-                    Model
-                  </label>
-                  <Show when={props.modelId}>
-                    <button
-                      type="button"
-                      onClick={resetModel}
-                      class="inline-flex items-center gap-1 text-[11px] text-neutral-500 transition hover:text-neutral-300"
-                      title="Reset to default model"
-                    >
-                      <TbOutlineRefresh size={12} />
-                      Reset
-                    </button>
-                  </Show>
-                </div>
-                <div class="mt-2 flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-2.5">
-                  <span class="min-w-0 flex-1 truncate font-mono text-[11px] text-neutral-300">
-                    {props.modelId ?? DEFAULT_MODEL_ID}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    class="shrink-0 rounded-md border border-neutral-800 bg-neutral-950 px-2.5 py-1 text-xs font-medium text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-900"
-                  >
-                    Change
-                  </button>
-                </div>
-                <Show when={!props.modelId}>
-                  <p class="mt-1.5 text-[11px] italic text-neutral-500">
-                    Default model. Pick another to override.
-                  </p>
-                </Show>
-              </section>
+              <ModelRow
+                label="Agent model"
+                icon={<TbOutlineCpu size={14} class="text-neutral-500" />}
+                value={props.agentModelId}
+                onPick={() => setPickerTarget("agent")}
+                onReset={() => props.onChangeAgentModel(null)}
+              />
+
+              <ModelRow
+                label="Report model"
+                icon={<TbOutlineFileText size={14} class="text-neutral-500" />}
+                value={props.reportModelId}
+                onPick={() => setPickerTarget("report")}
+                onReset={() => props.onChangeReportModel(null)}
+              />
 
               <section>
                 <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
@@ -146,11 +132,58 @@ export default function SettingsModal(props: Props) {
       </Show>
 
       <ModelPicker
-        value={props.modelId}
-        onChange={props.onChangeModel}
-        open={pickerOpen()}
-        onClose={() => setPickerOpen(false)}
+        value={
+          pickerTarget() === "report" ? props.reportModelId : props.agentModelId
+        }
+        onChange={onPickerChange}
+        open={pickerTarget() !== null}
+        onClose={() => setPickerTarget(null)}
+        title={
+          pickerTarget() === "report" ? "Pick report model" : "Pick agent model"
+        }
       />
     </>
+  );
+}
+
+function ModelRow(props: {
+  label: string;
+  icon: JSX.Element;
+  value: string | null;
+  onPick: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <section>
+      <div class="flex items-center justify-between">
+        <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+          {props.icon}
+          {props.label}
+        </label>
+        <Show when={props.value}>
+          <button
+            type="button"
+            onClick={props.onReset}
+            class="inline-flex items-center gap-1 text-[11px] text-neutral-500 transition hover:text-neutral-300"
+            title="Reset to default model"
+          >
+            <TbOutlineRefresh size={12} />
+            Reset
+          </button>
+        </Show>
+      </div>
+      <div class="mt-2 flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-2.5">
+        <span class="min-w-0 flex-1 truncate font-mono text-[11px] text-neutral-300">
+          {props.value ?? DEFAULT_MODEL_ID}
+        </span>
+        <button
+          type="button"
+          onClick={props.onPick}
+          class="shrink-0 rounded-md border border-neutral-800 bg-neutral-950 px-2.5 py-1 text-xs font-medium text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-900"
+        >
+          Change
+        </button>
+      </div>
+    </section>
   );
 }

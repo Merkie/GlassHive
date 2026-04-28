@@ -21,7 +21,13 @@ import ActivityFeed from "../components/ActivityFeed";
 import KeyGate from "../components/KeyGate";
 import SettingsModal from "../components/SettingsModal";
 import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
-import { DEFAULT_MODEL_ID, getStoredModel, setStoredModel } from "../lib/modelStore";
+import {
+  DEFAULT_MODEL_ID,
+  getStoredAgentModel,
+  setStoredAgentModel,
+  getStoredReportModel,
+  setStoredReportModel,
+} from "../lib/modelStore";
 import { useRunSimulation } from "../hooks/useRunSimulation";
 
 const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek has released its flagship V4 model series, featuring a massive 1-million token context window and performance that trails GPT-5.5 by only a few months of development. Dropped overnight on Hugging Face under a permissive MIT license, the 1.6-trillion parameter V4-Pro model delivers frontier-class reasoning at roughly 1/30th the API cost of its Western counterparts. Silicon Valley is reportedly scrambling as the release fundamentally resets the economics of the global AI race.`;
@@ -38,11 +44,18 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = createSignal(false);
 
   const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
-  const [modelId, setModelIdInternal] = createSignal<string | null>(getStoredModel());
+  const [agentModelId, setAgentModelInternal] = createSignal<string | null>(getStoredAgentModel());
+  const [reportModelId, setReportModelInternal] = createSignal<string | null>(
+    getStoredReportModel()
+  );
 
-  const setModelId = (id: string | null) => {
-    setModelIdInternal(id);
-    setStoredModel(id);
+  const setAgentModelId = (id: string | null) => {
+    setAgentModelInternal(id);
+    setStoredAgentModel(id);
+  };
+  const setReportModelId = (id: string | null) => {
+    setReportModelInternal(id);
+    setStoredReportModel(id);
   };
 
   const resetKey = () => {
@@ -69,7 +82,8 @@ export default function Home() {
       durationSec: durationSec(),
       mode: mode(),
       persistentMemory: persistentMemory(),
-      modelId: modelId(),
+      modelId: agentModelId(),
+      reportModelId: reportModelId(),
     });
   };
 
@@ -89,8 +103,10 @@ export default function Home() {
               {(blob) => (
                 <SettingsModal
                   keyBlob={blob()}
-                  modelId={modelId()}
-                  onChangeModel={setModelId}
+                  agentModelId={agentModelId()}
+                  reportModelId={reportModelId()}
+                  onChangeAgentModel={setAgentModelId}
+                  onChangeReportModel={setReportModelId}
                   onResetKey={resetKey}
                   disabled={loading()}
                 />
@@ -231,13 +247,24 @@ export default function Home() {
             </div>
 
             <div class="mt-5 flex items-center justify-between gap-4">
-              <span
-                class="inline-flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-neutral-500"
-                title="Model used for this run"
-              >
-                <TbOutlineCpu size={14} class="shrink-0 text-neutral-600" />
-                <span class="truncate">{modelId() ?? DEFAULT_MODEL_ID}</span>
-              </span>
+              <div class="flex min-w-0 flex-col gap-1 text-[11px] text-neutral-500">
+                <span
+                  class="inline-flex min-w-0 items-center gap-1.5 font-mono"
+                  title="Model used by every agent in the room"
+                >
+                  <TbOutlineCpu size={14} class="shrink-0 text-neutral-600" />
+                  <span class="shrink-0 text-neutral-400">Agent model</span>
+                  <span class="truncate">{agentModelId() ?? DEFAULT_MODEL_ID}</span>
+                </span>
+                <span
+                  class="inline-flex min-w-0 items-center gap-1.5 font-mono"
+                  title="Model used to write the post-run report"
+                >
+                  <TbOutlineFileText size={14} class="shrink-0 text-neutral-600" />
+                  <span class="shrink-0 text-neutral-400">Report model</span>
+                  <span class="truncate">{reportModelId() ?? DEFAULT_MODEL_ID}</span>
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={submit}

@@ -21,6 +21,7 @@ interface Props {
   onChange: (id: string | null) => void;
   open: boolean;
   onClose: () => void;
+  title?: string;
 }
 
 const PAGE_LIMIT = 30;
@@ -147,7 +148,7 @@ export default function ModelPicker(props: Props) {
       >
           <div class="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
             <div class="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
-              <h2 class="text-base font-semibold text-neutral-100">Pick a model</h2>
+              <h2 class="text-base font-semibold text-neutral-100">{props.title ?? "Pick a model"}</h2>
               <button
                 type="button"
                 onClick={() => props.onClose()}

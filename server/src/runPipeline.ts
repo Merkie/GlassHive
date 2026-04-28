@@ -19,6 +19,7 @@ export interface PipelineRequest {
   mode: SimulationMode;
   persistentMemory: boolean;
   modelId?: string;
+  reportModelId?: string;
 }
 
 export interface PipelineCallbacks {
@@ -137,7 +138,9 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
   onReportStart?.();
   activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
 
-  const reportModel = createOpenRouter({ apiKey }).chat(request.modelId ?? DEFAULT_MODEL_ID);
+  const reportModel = createOpenRouter({ apiKey }).chat(
+    request.reportModelId ?? DEFAULT_MODEL_ID
+  );
   const report = await generateReport({
     model: reportModel,
     source: request.source,

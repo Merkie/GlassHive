@@ -23,6 +23,7 @@ export const runRequestSchema = z.object({
   mode: z.enum(["requeue", "random"]).default("requeue"),
   persistentMemory: z.boolean().default(true),
   modelId: z.string().min(1).max(200).optional(),
+  reportModelId: z.string().min(1).max(200).optional(),
 });
 
 export type RunRequest = z.infer<typeof runRequestSchema>;

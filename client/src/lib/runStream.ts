@@ -13,6 +13,7 @@ export type RunStreamInput = {
   mode: "requeue" | "random";
   persistentMemory: boolean;
   modelId?: string | null;
+  reportModelId?: string | null;
 };
 
 export type { RunStreamEvent, RunStreamEventMap };
@@ -63,6 +64,7 @@ export async function* openRunStream(input: RunStreamInput): AsyncGenerator<RunS
       mode: input.mode,
       persistentMemory: input.persistentMemory,
       ...(input.modelId ? { modelId: input.modelId } : {}),
+      ...(input.reportModelId ? { reportModelId: input.reportModelId } : {}),
     }),
   });
   if (res.status === 401) throw new RunStreamUnauthorizedError();
