@@ -95,18 +95,7 @@ const SUFFIXES = [
   "_tx",
 ];
 
-const PREFIXES = [
-  "",
-  "the_",
-  "real_",
-  "u_",
-  "iam_",
-  "mr_",
-  "ms_",
-  "lord_",
-  "dr_",
-  "big_",
-];
+const PREFIXES = ["", "the_", "real_", "u_", "iam_", "mr_", "ms_", "lord_", "dr_", "big_"];
 
 // Build a reddit-style username deterministically from the profile id.
 // Real reddit handles are messy — first names, weird suffixes, leetspeak,
@@ -114,8 +103,17 @@ const PREFIXES = [
 // agents handles that read like a real comment section without needing
 // the LLM to invent them.
 function deriveUsername(id: string, fullName: string, age: number): string {
-  const first = fullName.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") ?? "user";
-  const last = fullName.split(/\s+/).slice(-1)[0]?.toLowerCase().replace(/[^a-z]/g, "") ?? "x";
+  const first =
+    fullName
+      .split(/\s+/)[0]
+      ?.toLowerCase()
+      .replace(/[^a-z]/g, "") ?? "user";
+  const last =
+    fullName
+      .split(/\s+/)
+      .slice(-1)[0]
+      ?.toLowerCase()
+      .replace(/[^a-z]/g, "") ?? "x";
   const initial = last[0] ?? "x";
   const yearTail = String(2025 - age).slice(-2);
   const h = hash(id);

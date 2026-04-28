@@ -49,18 +49,17 @@ function serializeSnapshot(snapshot: FrontpageSnapshot): string {
   for (const p of snapshot.posts) {
     const header = `## [karma ${p.karma}] "${p.post.title}" — u/${p.post.authorUsername}`;
     const body = p.post.body.trim().length > 0 ? `\n\n${p.post.body.trim()}` : "";
-    const commentLines = p.comments.length > 0
-      ? `\n\nComments:\n${p.comments.map((c) => serializeComment(c, 0)).join("\n")}`
-      : "\n\n(no comments)";
+    const commentLines =
+      p.comments.length > 0
+        ? `\n\nComments:\n${p.comments.map((c) => serializeComment(c, 0)).join("\n")}`
+        : "\n\n(no comments)";
     blocks.push(`${header}${body}${commentLines}`);
   }
   return blocks.join("\n\n---\n\n");
 }
 
 function extractCost(providerMetadata: unknown): number {
-  const pm = providerMetadata as
-    | { openrouter?: { usage?: { cost?: number } } }
-    | undefined;
+  const pm = providerMetadata as { openrouter?: { usage?: { cost?: number } } } | undefined;
   const cost = pm?.openrouter?.usage?.cost;
   return typeof cost === "number" ? cost : 0;
 }

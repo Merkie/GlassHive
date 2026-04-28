@@ -1,11 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import {
-  Frontpage,
-  SelfVoteError,
-  UnknownEntityError,
-  type SortMode,
-} from "./frontpage.js";
+import { Frontpage, SelfVoteError, UnknownEntityError, type SortMode } from "./frontpage.js";
 import type { ActivityEvent } from "../../shared/contracts.js";
 
 export type { ActivityEvent } from "../../shared/contracts.js";
@@ -20,16 +15,14 @@ export interface ToolContext {
 
 const sortSchema = z
   .enum(["top", "new", "controversial"])
-  .describe("Sort order. 'top' = most upvoted, 'new' = most recent, 'controversial' = most debated.");
+  .describe(
+    "Sort order. 'top' = most upvoted, 'new' = most recent, 'controversial' = most debated."
+  );
 
 // Centralized error wrapper so every tool returns a consistent
 // `{ error: string }` shape instead of throwing inside the AI SDK
 // step loop. The model gets the message and can usefully retry.
-function safeRun<T>(
-  ctx: ToolContext,
-  toolName: string,
-  fn: () => T
-): T | { error: string } {
+function safeRun<T>(ctx: ToolContext, toolName: string, fn: () => T): T | { error: string } {
   try {
     return fn();
   } catch (err) {
@@ -57,9 +50,7 @@ export function buildTools(ctx: ToolContext) {
         limit: z.number().int().min(1).max(50).default(25),
       }),
       execute: async ({ sort, limit }) =>
-        safeRun(ctx, "get_posts", () =>
-          ctx.fp.listPosts({ sort: sort as SortMode, limit })
-        ),
+        safeRun(ctx, "get_posts", () => ctx.fp.listPosts({ sort: sort as SortMode, limit })),
     }),
 
     get_post: tool({
@@ -100,9 +91,7 @@ export function buildTools(ctx: ToolContext) {
         sort: sortSchema.default("top"),
       }),
       execute: async ({ post_id, sort }) =>
-        safeRun(ctx, "get_comments", () =>
-          ctx.fp.getCommentTree(post_id, sort as SortMode)
-        ),
+        safeRun(ctx, "get_comments", () => ctx.fp.getCommentTree(post_id, sort as SortMode)),
     }),
 
     create_post: tool({

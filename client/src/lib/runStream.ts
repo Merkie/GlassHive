@@ -50,9 +50,7 @@ function parseChunk(chunk: string): RunStreamEvent | null {
   return { name, data } as RunStreamEvent;
 }
 
-export async function* openRunStream(
-  input: RunStreamInput,
-): AsyncGenerator<RunStreamEvent> {
+export async function* openRunStream(input: RunStreamInput): AsyncGenerator<RunStreamEvent> {
   const res = await fetch("/api/run-stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -63,17 +63,11 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
         ]);
         return;
       case "report-start":
-        setActivity((arr) => [
-          ...arr,
-          { kind: "phase", label: "Writing report…", tone: "info" },
-        ]);
+        setActivity((arr) => [...arr, { kind: "phase", label: "Writing report…", tone: "info" }]);
         return;
       case "report-done":
         if (event.data.markdown) {
-          setActivity((arr) => [
-            ...arr,
-            { kind: "phase", label: "Report ready", tone: "success" },
-          ]);
+          setActivity((arr) => [...arr, { kind: "phase", label: "Report ready", tone: "success" }]);
         } else {
           setActivity((arr) => [
             ...arr,
@@ -98,9 +92,7 @@ export function useRunSimulation(opts: UseRunSimulationOptions = {}) {
   const run = async (input: RunStreamInput) => {
     setLoading(true);
     setError(null);
-    setActivity([
-      { kind: "phase", label: "Starting simulation…", tone: "start" },
-    ]);
+    setActivity([{ kind: "phase", label: "Starting simulation…", tone: "start" }]);
     setDoneAgents([]);
     setLogCollapsed(false);
     startTimer(input.durationSec);

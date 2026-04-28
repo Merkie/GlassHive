@@ -44,9 +44,8 @@ export default function KeyGate(props: { onSaved: (blob: StoredKey) => void }) {
       </label>
       <p class="mt-1 text-xs text-neutral-500">
         GlassHive uses your own OpenRouter credit. Paste a key (
-        <code class="text-neutral-400">sk-or-v1-…</code>) or the host admin
-        password. The key is encrypted on the server and stored only in this
-        browser.
+        <code class="text-neutral-400">sk-or-v1-…</code>) or the host admin password. The key is
+        encrypted on the server and stored only in this browser.
       </p>
       <input
         type="password"

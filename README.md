@@ -52,8 +52,8 @@
 - **Client:** SolidJS + Vite + Tailwind v4 (port 3810)
 - **Server:** Express 5 + tsx + Zod 4 (port 3811)
 - **AI:** Vercel AI SDK v6 + OpenRouter (`@openrouter/ai-sdk-provider`)
-- **Tests:** Vitest (server-side, against the `Frontpage` class)
-- **State:** In-memory only. No database. Each run lives entirely inside one `runSimulation()` call.
+- **Tests:** Vitest — server-side against the `Frontpage` class; client-side under jsdom for components.
+- **Persistence:** Prisma + SQLite. One `Run` row per finished simulation (source, settings, activity log, agent results, snapshot, report markdown, totals). In-flight runs live in memory; only completed runs are saved. The public `/v/:id` page reads back from this row.
 
 ## Quickstart
 
@@ -77,7 +77,12 @@ Open http://localhost:3810, paste source material, tune the sliders, and hit **O
 | Var | Required | Default |
 |---|---|---|
 | `OPENROUTER_API_KEY` | yes | — |
+| `MASTER_ENCRYPTION_KEY` | yes (≥16 chars) | — |
+| `ADMIN_PASSWORD` | yes | — |
+| `DATABASE_URL` | yes | `file:./dev.db` |
 | `PORT` | no | `3811` |
+
+The first run also needs `npm run db:push` inside `server/` to create the SQLite schema.
 
 ## How a Run Works
 
@@ -94,8 +99,9 @@ Open http://localhost:3810, paste source material, tune the sliders, and hit **O
 |---|---|---|
 | GET | `/api/health` | Liveness + profile count |
 | GET | `/api/profiles` | List all 250+ personas |
-| POST | `/api/run` | Run a simulation synchronously, return the full result |
-| POST | `/api/run-stream` | Run a simulation as Server-Sent Events |
+| POST | `/api/run` | Run a simulation synchronously, persist it, return the full result + new `id` |
+| POST | `/api/run-stream` | Run a simulation as Server-Sent Events; emits `saved { id }` once persisted |
+| GET | `/api/runs/:id` | Fetch a saved run by uuid (powers the public `/v/:id` page) |
 
 Request body (Zod-validated):
 
@@ -110,37 +116,66 @@ Request body (Zod-validated):
 }
 ```
 
-SSE event types: `start`, `activity`, `agent-done`, `done`, `error`.
+SSE event types: `start`, `activity`, `agent-done`, `simulation-complete`, `report-start`, `report-done`, `saved`, `done`, `error`.
 
 ## Tests
 
 ```bash
-cd server
-npm test           # vitest run
-npm run test:watch
+cd server && npm test           # vitest run — Frontpage logic, no DOM
+cd server && npm run test:watch
+
+cd client && npm test           # vitest + jsdom — component tests
+cd client && npm run test:watch
 ```
 
-Tests cover the `Frontpage` class — voting, threading, sort modes (`top` / `new` / `controversial`), and snapshot. No AI / no network.
+Server tests cover the `Frontpage` class — voting, threading, sort modes (`top` / `new` / `controversial`), and snapshot. No AI / no network.
+
+## Formatting
+
+The repo ships a Prettier baseline (`.prettierrc.json`) and per-package scripts:
+
+```bash
+cd client && npm run format        # client/src
+cd server && npm run format        # server/src + tests
+```
+
+`npm run format:check` returns non-zero if anything is unformatted. There is intentionally no ESLint config — typecheck (`tsc -b`) is the source of truth for correctness, and Prettier handles style.
 
 ## Project Layout
 
 ```
 assets/                  README banner + screenshots
+shared/                  Cross-package contracts
+  contracts.ts           RunRecord + RunStreamEventMap shared by client and server
+
 client/                  SolidJS + Vite UI
   public/favicon.svg
   src/
-    App.tsx              The whole UI
-    app.css              Tailwind v4 entry
-    index.tsx
+    index.tsx            Router setup (/ → Home, /v/:id → View)
+    app.css              Tailwind v4 entry + .report-md @apply rules
+    types.ts             Shared client-side types (Activity, RunRecord, etc.)
+    components/          Logo, CommentTree, ActivityFeed, ActivityLine,
+                         Report, Thread, KeyGate, ModelPicker
+    hooks/useRunSimulation.ts   Live run state + countdown + SSE wiring
+    lib/                 format, runStream (typed SSE parser), keyStore, modelStore
+    pages/Home.tsx       Form + live feed; navigates to /v/:id when saved
+    pages/View.tsx       Read-only saved view (public, no auth)
+
 server/                  Express + tsx
-  profiles/              250+ unique persona markdown files (modeled to mirror a real sample of society)
+  prisma/schema.prisma   SQLite — one Run row per finished simulation
+  profiles/              250+ unique persona markdown files
   src/
-    index.ts             HTTP routes
+    index.ts             HTTP routes (/api/run, /api/run-stream, /api/runs/:id, …)
     profiles.ts          loadProfiles() + deriveUsername()
     frontpage.ts         Pure thread mechanics (posts, comments, votes, sort)
     tools.ts             Six Vercel AI SDK tools per agent
     agent.ts             runAgent() — one session
     runSimulation.ts     The orchestrator
+    runPipeline.ts       Simulation + report + persist, shared by both routes
+    runRequestSchema.ts  Zod schema for the run request body
+    report.ts            generateReport() — one no-tools call to summarize
+    openrouter-models.ts /api/models search-and-trim
+    resources/           prisma + cryptr singletons
   tests/frontpage.test.ts
 ```
 

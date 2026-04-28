@@ -25,8 +25,7 @@ export default function Thread(props: { result: SimulationResult }) {
         when={props.result.snapshot.posts.length > 0}
         fallback={
           <p class="rounded-xl border border-amber-900/60 bg-amber-950/30 p-4 text-sm text-amber-300">
-            The room logged on but no one posted. Try giving the agents more
-            steps or duration.
+            The room logged on but no one posted. Try giving the agents more steps or duration.
           </p>
         }
       >
@@ -39,26 +38,20 @@ export default function Thread(props: { result: SimulationResult }) {
                     <span class={`text-2xl font-bold ${karmaColor(p.karma)}`}>
                       {p.karma >= 0 ? "▲" : "▼"}
                     </span>
-                    <span class={`font-mono text-lg ${karmaColor(p.karma)}`}>
-                      {p.karma}
-                    </span>
+                    <span class={`font-mono text-lg ${karmaColor(p.karma)}`}>{p.karma}</span>
                   </div>
                   <div class="flex-1">
                     <div class="text-xs text-neutral-500">
-                      posted by{" "}
-                      <span class="text-neutral-300">u/{p.post.authorUsername}</span>
+                      posted by <span class="text-neutral-300">u/{p.post.authorUsername}</span>
                     </div>
-                    <h3 class="mt-1 text-xl font-bold text-neutral-100">
-                      {p.post.title}
-                    </h3>
+                    <h3 class="mt-1 text-xl font-bold text-neutral-100">{p.post.title}</h3>
                     <Show when={p.post.body.trim().length > 0}>
                       <p class="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
                         {p.post.body}
                       </p>
                     </Show>
                     <div class="mt-2 text-xs text-neutral-500">
-                      {p.upvotes}↑ {p.downvotes}↓ ·{" "}
-                      {countAllComments(p.comments)} comments
+                      {p.upvotes}↑ {p.downvotes}↓ · {countAllComments(p.comments)} comments
                     </div>
                   </div>
                 </header>

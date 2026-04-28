@@ -67,9 +67,7 @@ export interface SimulationResult {
   };
 }
 
-export async function runSimulation(
-  opts: SimulationOptions
-): Promise<SimulationResult> {
+export async function runSimulation(opts: SimulationOptions): Promise<SimulationResult> {
   const {
     source,
     pool,
@@ -88,9 +86,7 @@ export async function runSimulation(
   if (!apiKey) throw new Error("apiKey is required");
   if (agentCount < 1) throw new Error("agentCount must be at least 1");
   if (pool.length < agentCount) {
-    throw new Error(
-      `pool has ${pool.length} profiles but ${agentCount} were requested`
-    );
+    throw new Error(`pool has ${pool.length} profiles but ${agentCount} were requested`);
   }
 
   const openrouter = createOpenRouter({ apiKey });
@@ -161,9 +157,7 @@ export async function runSimulation(
       results.push(result);
       onAgentDone?.(result);
       const status = result.errored ? `ERR ${result.error}` : `${result.steps} steps`;
-      console.log(
-        `  ← u/${profile.username} done (${status}, $${result.costUsd.toFixed(6)})`
-      );
+      console.log(`  ← u/${profile.username} done (${status}, $${result.costUsd.toFixed(6)})`);
       if (mode === "requeue") queue.push(profile);
 
       if (result.errored) {
@@ -182,9 +176,7 @@ export async function runSimulation(
         // entire budget at zero latency.
         const remainingMs = deadline - Date.now();
         if (remainingMs > 0) {
-          await new Promise((r) =>
-            setTimeout(r, Math.min(ERROR_BACKOFF_MS, remainingMs))
-          );
+          await new Promise((r) => setTimeout(r, Math.min(ERROR_BACKOFF_MS, remainingMs)));
         }
       } else {
         consecutiveErrors = 0;

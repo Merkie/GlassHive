@@ -1,11 +1,20 @@
 @import "tailwindcss";
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   background: #0b0b0f;
   color: #f3f3f5;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 body {
@@ -74,22 +83,60 @@ input[type="range"]:disabled::-moz-range-thumb {
   cursor: not-allowed;
 }
 
-.report-md > *:first-child { margin-top: 0; }
-.report-md > *:last-child { margin-bottom: 0; }
-.report-md h1 { @apply text-2xl font-bold text-neutral-100 mt-6 mb-3; }
-.report-md h2 { @apply text-xl font-bold text-neutral-100 mt-5 mb-2; }
-.report-md h3 { @apply text-lg font-semibold text-neutral-200 mt-4 mb-2; }
-.report-md h4 { @apply text-base font-semibold text-neutral-200 mt-3 mb-2; }
-.report-md p  { @apply text-sm leading-relaxed text-neutral-300 my-3; }
-.report-md ul { @apply list-disc pl-6 my-3 text-sm text-neutral-300; }
-.report-md ol { @apply list-decimal pl-6 my-3 text-sm text-neutral-300; }
-.report-md li { @apply my-1; }
-.report-md li > p { @apply my-0; }
-.report-md blockquote { @apply border-l-2 border-neutral-700 pl-3 italic text-neutral-400 my-3; }
-.report-md code { @apply rounded bg-neutral-800 px-1 py-0.5 font-mono text-xs text-neutral-200; }
-.report-md pre { @apply rounded bg-neutral-950 p-3 my-3 overflow-x-auto; }
-.report-md pre code { @apply bg-transparent p-0; }
-.report-md a  { @apply text-orange-400 underline hover:text-orange-300; }
-.report-md strong { @apply font-semibold text-neutral-100; }
-.report-md em { @apply italic; }
-.report-md hr { @apply my-4 border-neutral-800; }
+.report-md > *:first-child {
+  margin-top: 0;
+}
+.report-md > *:last-child {
+  margin-bottom: 0;
+}
+.report-md h1 {
+  @apply text-2xl font-bold text-neutral-100 mt-6 mb-3;
+}
+.report-md h2 {
+  @apply text-xl font-bold text-neutral-100 mt-5 mb-2;
+}
+.report-md h3 {
+  @apply text-lg font-semibold text-neutral-200 mt-4 mb-2;
+}
+.report-md h4 {
+  @apply text-base font-semibold text-neutral-200 mt-3 mb-2;
+}
+.report-md p {
+  @apply text-sm leading-relaxed text-neutral-300 my-3;
+}
+.report-md ul {
+  @apply list-disc pl-6 my-3 text-sm text-neutral-300;
+}
+.report-md ol {
+  @apply list-decimal pl-6 my-3 text-sm text-neutral-300;
+}
+.report-md li {
+  @apply my-1;
+}
+.report-md li > p {
+  @apply my-0;
+}
+.report-md blockquote {
+  @apply border-l-2 border-neutral-700 pl-3 italic text-neutral-400 my-3;
+}
+.report-md code {
+  @apply rounded bg-neutral-800 px-1 py-0.5 font-mono text-xs text-neutral-200;
+}
+.report-md pre {
+  @apply rounded bg-neutral-950 p-3 my-3 overflow-x-auto;
+}
+.report-md pre code {
+  @apply bg-transparent p-0;
+}
+.report-md a {
+  @apply text-orange-400 underline hover:text-orange-300;
+}
+.report-md strong {
+  @apply font-semibold text-neutral-100;
+}
+.report-md em {
+  @apply italic;
+}
+.report-md hr {
+  @apply my-4 border-neutral-800;
+}
