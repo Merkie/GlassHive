@@ -17,7 +17,7 @@ export interface ToolContext {
 
 export type ActivityEvent =
   | { kind: "post-created"; postId: string; username: string; title: string }
-  | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string }
+  | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string; body: string }
   | { kind: "vote"; entityId: string; username: string; type: "up" | "down"; result: "set" | "cleared" | "switched" }
   | { kind: "tool-error"; tool: string; username: string; error: string };
 
@@ -149,6 +149,7 @@ export function buildTools(ctx: ToolContext) {
             postId: comment.postId,
             parentId: comment.parentId,
             username: ctx.username,
+            body: comment.body,
           });
           return {
             ok: true,

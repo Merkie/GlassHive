@@ -16,7 +16,7 @@ const requestSchema = z.object({
   source: z.string().min(1).max(20000),
   agentCount: z.number().int().min(1).max(50).default(10),
   maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
-  durationSec: z.number().int().min(10).max(300).default(90),
+  durationSec: z.number().int().min(10).max(300).default(30),
   mode: z.enum(["requeue", "random"]).default("requeue"),
   persistentMemory: z.boolean().default(true),
 });

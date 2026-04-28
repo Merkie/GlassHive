@@ -104,7 +104,7 @@ Request body (Zod-validated):
   source: string,                    // 1..20000 chars
   agentCount?: number,               // 1..50, default 10 — concurrency derived as ceil(agentCount * 0.3), capped at 10
   maxStepsPerAgent?: number,         // 1..40, default 12
-  durationSec?: number,              // 10..300, default 90
+  durationSec?: number,              // 10..300, default 30
   mode?: "requeue" | "random",       // default "requeue"
   persistentMemory?: boolean,        // default true
 }

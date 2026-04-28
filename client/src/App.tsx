@@ -1,4 +1,26 @@
-import { createSignal, createMemo, For, Show } from "solid-js";
+import { createSignal, createMemo, createEffect, For, Show, Switch, Match, type JSX } from "solid-js";
+import {
+  TbOutlineSparkles,
+  TbOutlineLoader2,
+  TbOutlineSettings,
+  TbOutlineChevronRight,
+  TbOutlineMessagePlus,
+  TbOutlineArrowBackUp,
+  TbFillArrowBigUp,
+  TbFillArrowBigDown,
+  TbOutlineAlertTriangle,
+  TbOutlineMessageCircle,
+  TbOutlineUsers,
+  TbOutlineBolt,
+  TbOutlineDownload,
+  TbOutlineClock,
+  TbOutlineHeartbeat,
+  TbOutlineFileText,
+  TbOutlineRefresh,
+  TbOutlineRepeat,
+  TbOutlineArrowsShuffle,
+  TbOutlineBrain,
+} from "solid-icons/tb";
 
 type Post = {
   id: string;
@@ -65,7 +87,7 @@ type SimulationResult = {
 
 type Activity =
   | { kind: "post-created"; postId: string; username: string; title: string }
-  | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string }
+  | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string; body: string }
   | { kind: "vote"; entityId: string; username: string; type: "up" | "down"; result: string }
   | { kind: "tool-error"; tool: string; username: string; error: string };
 
@@ -130,7 +152,7 @@ export default function App() {
   const [source, setSource] = createSignal(SAMPLE_SOURCE);
   const [agentCount, setAgentCount] = createSignal(10);
   const [maxStepsPerAgent, setMaxStepsPerAgent] = createSignal(12);
-  const [durationSec, setDurationSec] = createSignal(90);
+  const [durationSec, setDurationSec] = createSignal(30);
   const [mode, setMode] = createSignal<"requeue" | "random">("requeue");
   const [persistentMemory, setPersistentMemory] = createSignal(true);
   const [showAdvanced, setShowAdvanced] = createSignal(false);
@@ -139,6 +161,11 @@ export default function App() {
   const [error, setError] = createSignal<string | null>(null);
   const [result, setResult] = createSignal<SimulationResult | null>(null);
   const [activity, setActivity] = createSignal<Activity[]>([]);
+  let logRef: HTMLDivElement | undefined;
+  createEffect(() => {
+    activity();
+    if (logRef) logRef.scrollTop = logRef.scrollHeight;
+  });
   const [doneAgents, setDoneAgents] = createSignal<AgentResult[]>([]);
 
   const stats = createMemo(() => {
@@ -254,7 +281,10 @@ export default function App() {
         </header>
 
         <section class="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
-          <label class="text-sm font-medium text-neutral-300">Source material</label>
+          <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+            <TbOutlineFileText size={16} class="text-neutral-500" />
+            Source material
+          </label>
           <textarea
             class="mt-2 min-h-[160px] w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/70 p-3 font-mono text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-orange-500"
             placeholder="Paste a news article, a tweet, an essay, a Reddit post — anything for the agents to react to."
@@ -272,6 +302,7 @@ export default function App() {
               onChange={setAgentCount}
               disabled={loading()}
               accent="text-orange-400"
+              icon={<TbOutlineUsers size={16} class="text-neutral-500" />}
             />
             <Slider
               label="Simulation duration"
@@ -283,6 +314,7 @@ export default function App() {
               disabled={loading()}
               accent="text-emerald-400"
               format={formatDuration}
+              icon={<TbOutlineClock size={16} class="text-neutral-500" />}
             />
           </div>
 
@@ -293,13 +325,15 @@ export default function App() {
               class="flex w-full items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950/40 px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-900/60"
               aria-expanded={showAdvanced()}
             >
-              <span>Advanced settings</span>
-              <span
-                class="text-xs text-neutral-500 transition-transform"
-                style={{ transform: showAdvanced() ? "rotate(90deg)" : "rotate(0deg)" }}
-              >
-                ▶
+              <span class="flex items-center gap-2">
+                <TbOutlineSettings size={16} class="text-neutral-500" />
+                Advanced settings
               </span>
+              <TbOutlineChevronRight
+                size={16}
+                class="text-neutral-500 transition-transform"
+                style={{ transform: showAdvanced() ? "rotate(90deg)" : "rotate(0deg)" }}
+              />
             </button>
             <Show when={showAdvanced()}>
               <div class="mt-4 space-y-5 rounded-lg border border-neutral-800/60 bg-neutral-950/30 p-4">
@@ -312,11 +346,13 @@ export default function App() {
                   disabled={loading()}
                   accent="text-fuchsia-400"
                   unit="steps"
+                  icon={<TbOutlineHeartbeat size={16} class="text-neutral-500" />}
                 />
 
                 <div class="grid gap-5 md:grid-cols-2">
                 <div>
-                  <label class="text-sm font-medium text-neutral-300">
+                  <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                    <TbOutlineRefresh size={16} class="text-neutral-500" />
                     Respawn mode
                   </label>
                   <div class="mt-2 grid grid-cols-2 gap-2">
@@ -325,12 +361,14 @@ export default function App() {
                       disabled={loading()}
                       onClick={() => setMode("requeue")}
                       label="Requeue"
+                      icon={<TbOutlineRepeat size={16} />}
                     />
                     <ModeButton
                       active={mode() === "random"}
                       disabled={loading()}
                       onClick={() => setMode("random")}
                       label="Random"
+                      icon={<TbOutlineArrowsShuffle size={16} />}
                     />
                   </div>
                   <p class="mt-2 text-xs italic text-neutral-500">
@@ -341,7 +379,8 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label class="text-sm font-medium text-neutral-300">
+                  <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+                    <TbOutlineBrain size={16} class="text-neutral-500" />
                     Persistent agent memory
                   </label>
                   <div class="mt-2 flex items-center gap-3">
@@ -370,9 +409,12 @@ export default function App() {
               type="button"
               onClick={submit}
               disabled={loading() || !source().trim()}
-              class="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
+              class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {loading() ? "The room is talking…" : "Open the thread"}
+              <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
+                <TbOutlineLoader2 size={18} class="animate-spin" />
+              </Show>
+              {loading() ? "The room is talking…" : "Generate"}
             </button>
           </div>
         </section>
@@ -386,16 +428,37 @@ export default function App() {
         <Show when={loading() || activity().length > 0}>
           <section class="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 font-mono text-xs text-neutral-400">
             <div class="mb-2 flex flex-wrap gap-4">
-              <span>posts: <span class="text-orange-400">{stats().posts}</span></span>
-              <span>comments: <span class="text-fuchsia-400">{stats().comments}</span></span>
-              <span>votes: <span class="text-emerald-400">{stats().votes}</span></span>
-              <span>errors: <span class="text-rose-400">{stats().errors}</span></span>
-              <span>agents finished: <span class="text-neutral-200">{doneAgents().length} / {agentCount()}</span></span>
+              <span class="inline-flex items-center gap-1.5">
+                <TbOutlineMessagePlus size={14} class="text-orange-400" />
+                posts: <span class="text-orange-400">{stats().posts}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <TbOutlineMessageCircle size={14} class="text-fuchsia-400" />
+                comments: <span class="text-fuchsia-400">{stats().comments}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <TbOutlineBolt size={14} class="text-emerald-400" />
+                votes: <span class="text-emerald-400">{stats().votes}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <TbOutlineAlertTriangle size={14} class="text-rose-400" />
+                errors: <span class="text-rose-400">{stats().errors}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <TbOutlineUsers size={14} class="text-neutral-300" />
+                agent lifecycles: <span class="text-neutral-200">{doneAgents().length}</span>
+              </span>
             </div>
-            <div class="max-h-48 overflow-y-auto border-t border-neutral-800 pt-2 text-[11px] leading-tight">
-              <For each={activity().slice(-80)}>
-                {(e) => <div>{formatActivity(e)}</div>}
-              </For>
+            <div
+              ref={logRef}
+              class="no-scrollbar flex h-48 flex-col overflow-y-auto border-t border-neutral-800 pt-2 text-[11px] leading-tight"
+              style={{ "scroll-behavior": "smooth" }}
+            >
+              <div class="mt-auto">
+                <For each={activity().slice(-80)}>
+                  {(e) => <ActivityLine event={e} />}
+                </For>
+              </div>
             </div>
           </section>
         </Show>
@@ -410,9 +473,10 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => downloadJson("glasshive-thread.json", r())}
-                  class="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800"
                 >
-                  ⬇ export JSON
+                  <TbOutlineDownload size={14} />
+                  export JSON
                 </button>
               </div>
 
@@ -494,18 +558,20 @@ function ModeButton(props: {
   disabled: boolean;
   onClick: () => void;
   label: string;
+  icon?: JSX.Element;
 }) {
   return (
     <button
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
-      class={`flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-40 ${
+      class={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition disabled:opacity-40 ${
         props.active
           ? "border-orange-500 bg-orange-500/10 text-neutral-100"
           : "border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-200"
       }`}
     >
+      <Show when={props.icon}>{props.icon}</Show>
       {props.label}
     </button>
   );
@@ -548,11 +614,15 @@ function Slider(props: {
   accent: string;
   unit?: string;
   format?: (n: number) => string;
+  icon?: JSX.Element;
 }) {
   return (
     <div>
       <div class="flex items-center justify-between text-sm font-medium text-neutral-300">
-        <span>{props.label}</span>
+        <span class="inline-flex items-center gap-1.5">
+          <Show when={props.icon}>{props.icon}</Show>
+          {props.label}
+        </span>
         <span class={`font-mono text-lg font-bold ${props.accent}`}>
           <Show
             when={props.format}
@@ -565,7 +635,7 @@ function Slider(props: {
               </>
             }
           >
-            {(format) => format()(props.value)}
+            {(format) => <>{format()(props.value)}</>}
           </Show>
         </span>
       </div>
@@ -591,17 +661,68 @@ function formatDuration(totalSec: number): string {
   return `${m}m${s}s`;
 }
 
-function formatActivity(e: Activity): string {
-  switch (e.kind) {
-    case "post-created":
-      return `[post] u/${e.username}: "${e.title.slice(0, 80)}"`;
-    case "comment-created":
-      return `[reply] u/${e.username} → ${e.parentId.slice(0, 8)}`;
-    case "vote":
-      return `[${e.type}vote] u/${e.username} → ${e.entityId.slice(0, 8)} (${e.result})`;
-    case "tool-error":
-      return `[ERR ${e.tool}] u/${e.username}: ${e.error.slice(0, 100)}`;
-  }
+function ActivityLine(props: { event: Activity }) {
+  return (
+    <div class="flex items-start gap-1.5 py-0.5">
+      <Switch>
+        <Match when={props.event.kind === "post-created" && props.event}>
+          {(e) => (
+            <>
+              <TbOutlineMessagePlus size={12} class="mt-0.5 shrink-0 text-orange-400" />
+              <span>
+                <span class="text-neutral-300">u/{e().username}</span>
+                <span class="text-neutral-600">: </span>
+                <span class="text-neutral-300">"{e().title.slice(0, 80)}"</span>
+              </span>
+            </>
+          )}
+        </Match>
+        <Match when={props.event.kind === "comment-created" && props.event}>
+          {(e) => (
+            <>
+              <TbOutlineArrowBackUp size={12} class="mt-0.5 shrink-0 text-fuchsia-400" />
+              <span>
+                <span class="text-neutral-300">u/{e().username}</span>
+                <span class="text-neutral-600">: </span>
+                <span class="text-neutral-300">"{e().body.slice(0, 80)}"</span>
+              </span>
+            </>
+          )}
+        </Match>
+        <Match when={props.event.kind === "vote" && props.event}>
+          {(e) => (
+            <>
+              <Show
+                when={e().type === "up"}
+                fallback={<TbFillArrowBigDown size={12} class="mt-0.5 shrink-0 text-rose-400" />}
+              >
+                <TbFillArrowBigUp size={12} class="mt-0.5 shrink-0 text-emerald-400" />
+              </Show>
+              <span>
+                <span class="text-neutral-300">u/{e().username}</span>
+                <span class="text-neutral-600"> → </span>
+                <span class="text-neutral-500">{e().entityId.slice(0, 8)}</span>
+                <span class="text-neutral-700"> ({e().result})</span>
+              </span>
+            </>
+          )}
+        </Match>
+        <Match when={props.event.kind === "tool-error" && props.event}>
+          {(e) => (
+            <>
+              <TbOutlineAlertTriangle size={12} class="mt-0.5 shrink-0 text-rose-400" />
+              <span class="text-rose-300">
+                <span class="text-neutral-400">{e().tool}</span>{" "}
+                <span class="text-neutral-300">u/{e().username}</span>
+                <span class="text-neutral-600">: </span>
+                {e().error.slice(0, 100)}
+              </span>
+            </>
+          )}
+        </Match>
+      </Switch>
+    </div>
+  );
 }
 
 function countAllComments(nodes: CommentNode[]): number {
