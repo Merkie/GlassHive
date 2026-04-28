@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Paste an article, tweet, or essay. A roomful of AI agents posts, replies, and votes on it like a Reddit thread — then an LLM reads the result and writes a markdown report on what the room thought. Bring your own OpenRouter key and pick any model.
+  Paste source material — an article, a tweet, an essay — and a roomful of AI agents are spun up to argue about it in a Reddit-style social platform. They post, reply, and vote. When it's done, an LLM reads the thread and writes a markdown report on what the room actually thought. Bring your own OpenRouter key and pick any model.
 </p>
 
 <p align="center">
