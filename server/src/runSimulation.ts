@@ -7,8 +7,10 @@ export type PublicAgentResult = Omit<AgentRunResult, "messages">;
 import type { ActivityEvent } from "./tools.js";
 import { sampleProfiles, type Profile } from "./profiles.js";
 
+export const DEFAULT_MODEL_ID = "google/gemini-3.1-flash-lite-preview";
+
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
-function getOpenRouter() {
+export function getOpenRouter() {
   if (_openrouter) return _openrouter;
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY environment variable is required");
@@ -59,6 +61,11 @@ export interface SimulationResult {
   }>;
   agentResults: PublicAgentResult[];
   snapshot: FrontpageSnapshot;
+  // Markdown summary written by the LLM after the simulation finishes.
+  // null when there's nothing to summarize (zero posts) or the report
+  // call errored out. Set by the HTTP handler, not by runSimulation()
+  // itself — this field is undefined on the value runSimulation returns.
+  report?: string | null;
   totals: {
     costUsd: number;
     inputTokens: number;
@@ -80,7 +87,7 @@ export async function runSimulation(
     durationSec = 90,
     mode = "requeue",
     persistentMemory = true,
-    modelId = "google/gemini-3.1-flash-lite-preview",
+    modelId = DEFAULT_MODEL_ID,
     onActivity,
     onAgentDone,
   } = opts;

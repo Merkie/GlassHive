@@ -3,7 +3,8 @@ import express from "express";
 import cors from "cors";
 import { z } from "zod";
 import { loadProfiles } from "./profiles.js";
-import { runSimulation } from "./runSimulation.js";
+import { runSimulation, getOpenRouter, DEFAULT_MODEL_ID } from "./runSimulation.js";
+import { generateReport, type ReportResult } from "./report.js";
 
 const app = express();
 app.use(cors());
@@ -56,13 +57,35 @@ app.post("/api/run", async (req, res) => {
   );
   try {
     const result = await runSimulation({ ...opts, pool: profiles });
-    res.json(result);
+    const reportModel = getOpenRouter().chat(DEFAULT_MODEL_ID);
+    const report = await generateReport({
+      model: reportModel,
+      source: opts.source,
+      snapshot: result.snapshot,
+    });
+    res.json({
+      ...result,
+      report: report.markdown,
+      totals: addReportCost(result.totals, report),
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("simulation failed:", msg);
     res.status(500).json({ error: msg });
   }
 });
+
+function addReportCost(
+  totals: { costUsd: number; inputTokens: number; outputTokens: number; posts: number; comments: number; elapsedMs: number },
+  report: ReportResult
+) {
+  return {
+    ...totals,
+    costUsd: totals.costUsd + report.costUsd,
+    inputTokens: totals.inputTokens + report.tokens.input,
+    outputTokens: totals.outputTokens + report.tokens.output,
+  };
+}
 
 // Streaming variant: emit each ActivityEvent + final result as a Server-Sent
 // Events stream so the client can render comments arriving live.
@@ -92,7 +115,24 @@ app.post("/api/run-stream", async (req, res) => {
       onActivity: (e) => send("activity", e),
       onAgentDone: (r) => send("agent-done", r),
     });
-    send("done", result);
+    send("simulation-complete", {
+      posts: result.totals.posts,
+      comments: result.totals.comments,
+    });
+    send("report-start", {});
+    const reportModel = getOpenRouter().chat(DEFAULT_MODEL_ID);
+    const report = await generateReport({
+      model: reportModel,
+      source: opts.source,
+      snapshot: result.snapshot,
+    });
+    send("report-done", { markdown: report.markdown, error: report.error });
+    const finalResult = {
+      ...result,
+      report: report.markdown,
+      totals: addReportCost(result.totals, report),
+    };
+    send("done", finalResult);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     send("error", { error: msg });

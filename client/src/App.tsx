@@ -1,4 +1,5 @@
 import { createSignal, createMemo, createEffect, For, Show, Switch, Match, type JSX } from "solid-js";
+import { marked } from "marked";
 import {
   TbOutlineSparkles,
   TbOutlineLoader2,
@@ -20,6 +21,7 @@ import {
   TbOutlineRepeat,
   TbOutlineArrowsShuffle,
   TbOutlineBrain,
+  TbOutlineCircleCheck,
 } from "solid-icons/tb";
 
 type Post = {
@@ -75,6 +77,7 @@ type SimulationResult = {
   participants: Participant[];
   agentResults: AgentResult[];
   snapshot: Snapshot;
+  report?: string | null;
   totals: {
     costUsd: number;
     inputTokens: number;
@@ -89,7 +92,8 @@ type Activity =
   | { kind: "post-created"; postId: string; username: string; title: string }
   | { kind: "comment-created"; commentId: string; postId: string; parentId: string; username: string; body: string }
   | { kind: "vote"; entityId: string; username: string; type: "up" | "down"; result: string }
-  | { kind: "tool-error"; tool: string; username: string; error: string };
+  | { kind: "tool-error"; tool: string; username: string; error: string }
+  | { kind: "phase"; label: string; tone: "info" | "success" };
 
 function fmtUsd(n: number): string {
   if (n === 0) return "$0.00";
@@ -160,6 +164,7 @@ export default function App() {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [result, setResult] = createSignal<SimulationResult | null>(null);
+  const [report, setReport] = createSignal<string | null>(null);
   const [activity, setActivity] = createSignal<Activity[]>([]);
   let logRef: HTMLDivElement | undefined;
   createEffect(() => {
@@ -184,6 +189,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setReport(null);
     setActivity([]);
     setDoneAgents([]);
 
@@ -230,6 +236,37 @@ export default function App() {
             setActivity((arr) => [...arr, data as Activity]);
           } else if (name === "agent-done") {
             setDoneAgents((arr) => [...arr, data as AgentResult]);
+          } else if (name === "simulation-complete") {
+            setActivity((arr) => [
+              ...arr,
+              {
+                kind: "phase",
+                label: `simulation complete — ${data.posts} posts, ${data.comments} comments`,
+                tone: "success",
+              },
+            ]);
+          } else if (name === "report-start") {
+            setActivity((arr) => [
+              ...arr,
+              { kind: "phase", label: "writing report…", tone: "info" },
+            ]);
+          } else if (name === "report-done") {
+            if (data.markdown) {
+              setReport(data.markdown);
+              setActivity((arr) => [
+                ...arr,
+                { kind: "phase", label: "report ready", tone: "success" },
+              ]);
+            } else {
+              setActivity((arr) => [
+                ...arr,
+                {
+                  kind: "phase",
+                  label: `report skipped${data.error ? `: ${data.error}` : ""}`,
+                  tone: "info",
+                },
+              ]);
+            }
           } else if (name === "done") {
             setResult(data as SimulationResult);
           } else if (name === "error") {
@@ -461,6 +498,20 @@ export default function App() {
               </div>
             </div>
           </section>
+        </Show>
+
+        <Show when={report()}>
+          {(md) => (
+            <section class="mt-10">
+              <h2 class="mb-3 text-sm font-semibold uppercase tracking-widest text-neutral-500">
+                the report
+              </h2>
+              <div
+                class="report-md rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6"
+                innerHTML={marked.parse(md(), { async: false }) as string}
+              />
+            </section>
+          )}
         </Show>
 
         <Show when={result()}>
@@ -716,6 +767,29 @@ function ActivityLine(props: { event: Activity }) {
                 <span class="text-neutral-300">u/{e().username}</span>
                 <span class="text-neutral-600">: </span>
                 {e().error.slice(0, 100)}
+              </span>
+            </>
+          )}
+        </Match>
+        <Match when={props.event.kind === "phase" && props.event}>
+          {(e) => (
+            <>
+              <Show
+                when={e().tone === "success"}
+                fallback={
+                  <TbOutlineLoader2 size={12} class="mt-0.5 shrink-0 animate-spin text-sky-400" />
+                }
+              >
+                <TbOutlineCircleCheck size={12} class="mt-0.5 shrink-0 text-emerald-400" />
+              </Show>
+              <span
+                class={
+                  e().tone === "success"
+                    ? "font-semibold text-emerald-300"
+                    : "font-semibold text-sky-300"
+                }
+              >
+                {e().label}
               </span>
             </>
           )}

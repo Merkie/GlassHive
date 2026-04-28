@@ -39,7 +39,10 @@ client/                              SolidJS + Vite + Tailwind v4
                                      "Advanced settings" panel containing the Agent lifespan
                                      slider, Respawn mode toggle (Requeue / Random), and
                                      Persistent agent memory toggle. SSE client, live
-                                     activity feed, threaded comment renderer, JSON export.
+                                     activity feed (with phase markers for simulation-complete
+                                     / writing-report / report-ready), markdown-rendered
+                                     "the report" section above the threaded comment
+                                     renderer, JSON export.
 
 server/                              Express + tsx
   .env                               OPENROUTER_API_KEY + PORT
@@ -82,6 +85,14 @@ server/                              Express + tsx
                                      keeps a `Map<username, ModelMessage[]>` and feeds it
                                      back into runAgent on each respawn. Strips messages
                                      from the public result so the API payload stays small.
+                                     Exports getOpenRouter() and DEFAULT_MODEL_ID so the
+                                     report path in index.ts can reuse the same model.
+    report.ts                        generateReport({ model, source, snapshot }): one
+                                     no-tools generateText call that asks the LLM to write
+                                     a markdown summary of the (already top-sorted) snapshot.
+                                     Returns { markdown, costUsd, tokens, error? }. Returns
+                                     markdown=null when there are no posts to summarize or
+                                     the call throws.
   tests/
     frontpage.test.ts                20 vitest tests for the Frontpage class — voting,
                                      threading, sort modes, snapshot. No AI / no network.
@@ -118,7 +129,10 @@ server/                              Express + tsx
 | `start` | Once at the top of the run |
 | `activity` | Every `post-created` / `comment-created` / `vote` / `tool-error` from any agent |
 | `agent-done` | Each time an agent session completes (one agent fires this many times across a run) |
-| `done` | Final SimulationResult on success |
+| `simulation-complete` | Once, after all workers finish — payload `{ posts, comments }` |
+| `report-start` | Once, right before the LLM is asked to write the report |
+| `report-done` | Once, with `{ markdown, error? }` — `markdown` is null if the run had 0 posts or the report call errored |
+| `done` | Final SimulationResult on success (now includes top-level `report` field) |
 | `error` | Terminal error |
 
 ## How a Run Works
@@ -128,7 +142,8 @@ server/                              Express + tsx
 3. **One session** = one `generateText()` with up to `maxStepsPerAgent` tool-using steps. The agent's tools mutate the shared `Frontpage` directly. ActivityEvents are emitted as a side effect of every state change.
 4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or just picks a fresh random participant (`random` mode), and runs again. **The wall-clock deadline is what stops the simulation** — workers loop until `Date.now() >= deadline`. Per-agent step limits cap each visit, not the whole run.
 5. **Persistent memory** (default on): the runner keeps a per-username `ModelMessage[]` and passes it as `priorMessages` on the next respawn. The agent appends a "you're back, what's new?" user turn so the model fetches the latest thread state instead of repeating itself.
-6. **Result**: a `SimulationResult` with `participants`, `agentResults` (per-session, message log stripped), `snapshot` (the full thread tree), and `totals` (cost, tokens, posts, comments, elapsedMs).
+6. **Report** (in the HTTP handler, not inside `runSimulation`): once the simulation finishes, `generateReport()` (`server/src/report.ts`) takes the top-sorted snapshot and asks the same model — with no tools — to write a markdown summary covering overarching opinion, consensus, controversial takes, and notable angles. Cost folds into `totals`. Skipped (markdown=null) when there are 0 posts.
+7. **Result**: a `SimulationResult` with `participants`, `agentResults` (per-session, message log stripped), `snapshot` (the full thread tree), `report` (the markdown summary, or null), and `totals` (cost, tokens, posts, comments, elapsedMs).
 
 ## The Six Agent Tools
 
