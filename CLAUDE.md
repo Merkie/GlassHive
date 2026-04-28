@@ -231,8 +231,10 @@ cd server && npm install && npm run db:push && npm run dev
 cd client && npm install && npm run dev
 
 # Tests
-cd server && npm test           # vitest run
+cd server && npm test           # vitest run (Frontpage logic, no DOM)
 cd server && npm run test:watch
+cd client && npm test           # vitest + jsdom (component / DOM-touching tests)
+cd client && npm run test:watch
 ```
 
 ### Env vars (`server/.env`)
