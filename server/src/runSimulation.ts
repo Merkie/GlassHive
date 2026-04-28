@@ -9,16 +9,6 @@ import { sampleProfiles, type Profile } from "./profiles.js";
 
 export const DEFAULT_MODEL_ID = "google/gemini-3.1-flash-lite-preview";
 
-let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
-export function getOpenRouter() {
-  if (_openrouter) return _openrouter;
-  if (!process.env.OPENROUTER_API_KEY) {
-    throw new Error("OPENROUTER_API_KEY environment variable is required");
-  }
-  _openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
-  return _openrouter;
-}
-
 // 'requeue' rotates through participants in order — each agent only
 // reappears after the others have had a turn. Reads like real reddit:
 // people drop in, post, come back later when something new is on top.
@@ -29,6 +19,7 @@ export type SimulationMode = "requeue" | "random";
 export interface SimulationOptions {
   source: string;
   pool: Profile[];
+  apiKey: string;
   agentCount: number;
   // Hard cap on tool-using steps per agent SESSION. In requeue/random
   // modes each agent may be re-spawned many times; this caps each
@@ -82,6 +73,7 @@ export async function runSimulation(
   const {
     source,
     pool,
+    apiKey,
     agentCount,
     maxStepsPerAgent = 12,
     durationSec = 90,
@@ -93,6 +85,7 @@ export async function runSimulation(
   } = opts;
 
   if (!source.trim()) throw new Error("source must not be empty");
+  if (!apiKey) throw new Error("apiKey is required");
   if (agentCount < 1) throw new Error("agentCount must be at least 1");
   if (pool.length < agentCount) {
     throw new Error(
@@ -100,7 +93,7 @@ export async function runSimulation(
     );
   }
 
-  const openrouter = getOpenRouter();
+  const openrouter = createOpenRouter({ apiKey });
   const model = openrouter.chat(modelId);
 
   const fp = new Frontpage();

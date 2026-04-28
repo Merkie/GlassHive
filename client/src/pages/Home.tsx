@@ -13,11 +13,14 @@ import {
   TbOutlineArrowsShuffle,
   TbOutlineBrain,
   TbOutlineHeartbeat,
+  TbOutlineKey,
 } from "solid-icons/tb";
 import type { Activity, AgentResult } from "../types";
 import { formatDuration } from "../lib/format";
 import Logo from "../components/Logo";
 import ActivityFeed from "../components/ActivityFeed";
+import KeyGate from "../components/KeyGate";
+import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
 
 const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek released a new open-weights model that scores within 2 points of GPT-5 on standard benchmarks while costing roughly 1/30th to train. The release dropped overnight on Hugging Face with a permissive license. Western labs are reportedly scrambling to respond.`;
 
@@ -32,8 +35,14 @@ export default function Home() {
   const [persistentMemory, setPersistentMemory] = createSignal(true);
   const [showAdvanced, setShowAdvanced] = createSignal(false);
 
+  const [keyBlob, setKeyBlob] = createSignal<StoredKey | null>(getStoredKey());
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
+
+  const resetKey = () => {
+    clearStoredKey();
+    setKeyBlob(null);
+  };
   const [activity, setActivity] = createSignal<Activity[]>([]);
   const [doneAgents, setDoneAgents] = createSignal<AgentResult[]>([]);
   const [logCollapsed, setLogCollapsed] = createSignal(false);
@@ -64,6 +73,8 @@ export default function Home() {
   const submit = async () => {
     const text = source().trim();
     if (!text) return;
+    const stored = keyBlob();
+    if (!stored) return;
     setLoading(true);
     setError(null);
     setActivity([
@@ -79,6 +90,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           source: text,
+          encryptedKey: stored.encryptedKey,
           agentCount: agentCount(),
           maxStepsPerAgent: maxStepsPerAgent(),
           durationSec: durationSec(),
@@ -86,6 +98,10 @@ export default function Home() {
           persistentMemory: persistentMemory(),
         }),
       });
+      if (res.status === 401) {
+        resetKey();
+        throw new Error("Saved key was rejected — re-enter your OpenRouter key.");
+      }
       if (!res.ok || !res.body) {
         const body = await res.text();
         throw new Error(`${res.status}: ${body}`);
@@ -168,7 +184,7 @@ export default function Home() {
   return (
     <div class="min-h-full w-full">
       <div class="mx-auto max-w-5xl px-6 py-10">
-        <header class="mb-8 flex items-baseline justify-between">
+        <header class="mb-8 flex items-start justify-between gap-4">
           <div>
             <Logo />
             <p class="mt-1 text-sm text-neutral-400">
@@ -176,8 +192,28 @@ export default function Home() {
               in a fake comment section.
             </p>
           </div>
+          <Show when={keyBlob()}>
+            {(blob) => (
+              <button
+                type="button"
+                onClick={resetKey}
+                disabled={loading()}
+                class="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+                title="Clear saved key and re-enter"
+              >
+                <TbOutlineKey size={14} class="text-neutral-500" />
+                {blob().mode === "admin" ? "Host admin" : "Your OpenRouter key"}
+                <span class="text-neutral-600">· change</span>
+              </button>
+            )}
+          </Show>
         </header>
 
+        <Show when={!keyBlob()}>
+          <KeyGate onSaved={setKeyBlob} />
+        </Show>
+
+        <Show when={keyBlob()}>
         <section class="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
           <label class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
             <TbOutlineFileText size={16} class="text-neutral-500" />
@@ -306,7 +342,7 @@ export default function Home() {
             <button
               type="button"
               onClick={submit}
-              disabled={loading() || !source().trim()}
+              disabled={loading() || !source().trim() || !keyBlob()}
               class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
@@ -316,6 +352,7 @@ export default function Home() {
             </button>
           </div>
         </section>
+        </Show>
 
         <Show when={error()}>
           <div class="mt-6 rounded-lg border border-rose-900/60 bg-rose-950/40 p-4 text-sm text-rose-300">

@@ -75,7 +75,8 @@ client/                              SolidJS + Vite + Tailwind v4
                                      from the saved row. Public, no auth.
 
 server/                              Express + tsx
-  .env                               OPENROUTER_API_KEY + PORT + DATABASE_URL
+  .env                               OPENROUTER_API_KEY + MASTER_ENCRYPTION_KEY +
+                                     ADMIN_PASSWORD + PORT + DATABASE_URL
   prisma/
     schema.prisma                    SQLite datasource. Single `Run` model — id (uuid v4),
                                      source, settings (agentCount/maxStepsPerAgent/
@@ -236,11 +237,22 @@ cd server && npm run test:watch
 
 ### Env vars (`server/.env`)
 
-- `OPENROUTER_API_KEY` — required for any LLM call
+- `OPENROUTER_API_KEY` — host's key. Used only when a visitor authenticates with the admin password.
+- `MASTER_ENCRYPTION_KEY` — symmetric key used by `server/src/resources/cryptr.ts` to encrypt visitor-supplied OpenRouter keys before they're stored in `localStorage`. Required, ≥16 chars; rotate to invalidate every stored client blob. Recommended: `openssl rand -hex 32`.
+- `ADMIN_PASSWORD` — bypass password. When a visitor types this on the BYOK gate, the server uses `OPENROUTER_API_KEY` instead of treating their input as a real key.
 - `PORT` — defaults to `3811`
 - `DATABASE_URL` — Prisma SQLite URL, e.g. `file:./dev.db`
 
 The client has no env vars; Vite proxies `/api` straight to `localhost:3811` (see `client/vite.config.ts`).
+
+### BYOK (bring-your-own-key)
+
+Every `/api/run` and `/api/run-stream` request requires an `encryptedKey` field. The flow:
+
+1. Client posts plaintext to `POST /api/encrypt-key`. Server validates against OpenRouter's `/api/v1/auth/key` (or skips if it matches `ADMIN_PASSWORD`), encrypts the key with `cryptr` + `MASTER_ENCRYPTION_KEY`, returns `{ encryptedKey, mode: "user" | "admin" }`.
+2. Client stashes the ciphertext under `glasshive_encrypted_openrouter_key` in `localStorage` (`client/src/lib/keyStore.ts`).
+3. Every subsequent run sends the ciphertext. The server decrypts in memory, builds a per-request `createOpenRouter({ apiKey })` client, and threads it through `runSimulation` and `generateReport`. The plaintext key never persists to disk and never gets logged.
+4. Tampered or stale ciphertext returns 401; the client clears localStorage and re-prompts via `KeyGate`.
 
 ## SolidJS Rules (MANDATORY)
 

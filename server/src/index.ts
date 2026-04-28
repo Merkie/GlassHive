@@ -3,11 +3,13 @@ import express from "express";
 import cors from "cors";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { loadProfiles } from "./profiles.js";
-import { runSimulation, getOpenRouter, DEFAULT_MODEL_ID } from "./runSimulation.js";
+import { runSimulation, DEFAULT_MODEL_ID } from "./runSimulation.js";
 import { generateReport, type ReportResult } from "./report.js";
 import type { ActivityEvent } from "./tools.js";
 import prisma from "./resources/prisma.js";
+import cryptr from "./resources/cryptr.js";
 
 const app = express();
 app.use(cors());
@@ -16,8 +18,17 @@ app.use(express.json({ limit: "2mb" }));
 const profiles = loadProfiles();
 console.log(`Loaded ${profiles.length} profiles`);
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  throw new Error("ADMIN_PASSWORD environment variable is required");
+}
+if (!process.env.OPENROUTER_API_KEY) {
+  throw new Error("OPENROUTER_API_KEY environment variable is required");
+}
+
 const requestSchema = z.object({
   source: z.string().min(1).max(20000),
+  encryptedKey: z.string().min(1),
   agentCount: z.number().int().min(1).max(50).default(10),
   maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
   durationSec: z.number().int().min(10).max(300).default(30),
@@ -25,12 +36,61 @@ const requestSchema = z.object({
   persistentMemory: z.boolean().default(true),
 });
 
+const encryptKeySchema = z.object({
+  key: z.string().min(1).max(256),
+});
+
+// Resolves the encrypted localStorage blob into a real OpenRouter key.
+// Throws ResolveKeyError on tampered ciphertext so callers can return 401.
+class ResolveKeyError extends Error {}
+
+function resolveApiKey(encryptedKey: string): { apiKey: string; mode: "user" | "admin" } {
+  let plaintext: string;
+  try {
+    plaintext = cryptr.decrypt(encryptedKey);
+  } catch {
+    throw new ResolveKeyError("stored key is invalid — please re-enter");
+  }
+  if (plaintext === ADMIN_PASSWORD) {
+    return { apiKey: process.env.OPENROUTER_API_KEY!, mode: "admin" };
+  }
+  return { apiKey: plaintext, mode: "user" };
+}
+
+async function validateOpenRouterKey(apiKey: string): Promise<boolean> {
+  try {
+    const r = await fetch("https://openrouter.ai/api/v1/auth/key", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     profiles: profiles.length,
     sampleUsernames: profiles.slice(0, 5).map((p) => p.username),
   });
+});
+
+app.post("/api/encrypt-key", async (req, res) => {
+  const parsed = encryptKeySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: "invalid request", detail: parsed.error.issues });
+  }
+  const { key } = parsed.data;
+  const isAdmin = key === ADMIN_PASSWORD;
+  if (!isAdmin) {
+    const ok = await validateOpenRouterKey(key);
+    if (!ok) return res.status(400).json({ error: "invalid OpenRouter key" });
+  }
+  const encryptedKey = cryptr.encrypt(key);
+  res.json({ encryptedKey, mode: isAdmin ? "admin" : "user" });
 });
 
 app.get("/api/profiles", (_req, res) => {
@@ -55,8 +115,17 @@ app.post("/api/run", async (req, res) => {
       .json({ error: "invalid request", detail: parsed.error.issues });
   }
   const opts = parsed.data;
+  let resolved: { apiKey: string; mode: "user" | "admin" };
+  try {
+    resolved = resolveApiKey(opts.encryptedKey);
+  } catch (err) {
+    if (err instanceof ResolveKeyError) {
+      return res.status(401).json({ error: err.message });
+    }
+    throw err;
+  }
   console.log(
-    `▶ /api/run: agents=${opts.agentCount} duration=${opts.durationSec}s mode=${opts.mode} source="${opts.source.slice(0, 80).replace(/\s+/g, " ")}…"`
+    `▶ /api/run [${resolved.mode}]: agents=${opts.agentCount} duration=${opts.durationSec}s mode=${opts.mode} source="${opts.source.slice(0, 80).replace(/\s+/g, " ")}…"`
   );
   try {
     const activity: ActivityEvent[] = [
@@ -65,6 +134,7 @@ app.post("/api/run", async (req, res) => {
     const result = await runSimulation({
       ...opts,
       pool: profiles,
+      apiKey: resolved.apiKey,
       onActivity: (e) => activity.push(e),
     });
     activity.push({
@@ -73,7 +143,7 @@ app.post("/api/run", async (req, res) => {
       tone: "success",
     });
     activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
-    const reportModel = getOpenRouter().chat(DEFAULT_MODEL_ID);
+    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(DEFAULT_MODEL_ID);
     const report = await generateReport({
       model: reportModel,
       source: opts.source,
@@ -157,6 +227,15 @@ app.post("/api/run-stream", async (req, res) => {
       .json({ error: "invalid request", detail: parsed.error.issues });
   }
   const opts = parsed.data;
+  let resolved: { apiKey: string; mode: "user" | "admin" };
+  try {
+    resolved = resolveApiKey(opts.encryptedKey);
+  } catch (err) {
+    if (err instanceof ResolveKeyError) {
+      return res.status(401).json({ error: err.message });
+    }
+    throw err;
+  }
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
@@ -175,6 +254,7 @@ app.post("/api/run-stream", async (req, res) => {
     const result = await runSimulation({
       ...opts,
       pool: profiles,
+      apiKey: resolved.apiKey,
       onActivity: (e) => {
         activity.push(e);
         send("activity", e);
@@ -192,7 +272,7 @@ app.post("/api/run-stream", async (req, res) => {
     });
     send("report-start", {});
     activity.push({ kind: "phase", label: "Writing report…", tone: "info" });
-    const reportModel = getOpenRouter().chat(DEFAULT_MODEL_ID);
+    const reportModel = createOpenRouter({ apiKey: resolved.apiKey }).chat(DEFAULT_MODEL_ID);
     const report = await generateReport({
       model: reportModel,
       source: opts.source,
