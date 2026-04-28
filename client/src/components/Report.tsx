@@ -1,5 +1,6 @@
 import { Show } from "solid-js";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { TbOutlineDownload } from "solid-icons/tb";
 import { downloadFile } from "../lib/format";
 
@@ -23,7 +24,7 @@ export default function Report(props: { markdown: string | null | undefined }) {
           </div>
           <div
             class="report-md rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6"
-            innerHTML={marked.parse(md(), { async: false }) as string}
+            innerHTML={DOMPurify.sanitize(marked.parse(md(), { async: false }) as string)}
           />
         </section>
       )}
