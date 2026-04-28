@@ -361,11 +361,11 @@ export default function App() {
             />
           </div>
 
-          <div class="mt-5">
+          <div class="mt-5 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950/40">
             <button
               type="button"
               onClick={() => setShowAdvanced((v) => !v)}
-              class="flex w-full items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950/40 px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:border-neutral-700 hover:bg-neutral-900/60"
+              class="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:bg-neutral-900/60"
               aria-expanded={showAdvanced()}
             >
               <span class="flex items-center gap-2">
@@ -379,7 +379,7 @@ export default function App() {
               />
             </button>
             <Show when={showAdvanced()}>
-              <div class="mt-4 space-y-5 rounded-lg border border-neutral-800/60 bg-neutral-950/30 p-4">
+              <div class="space-y-5 border-t border-neutral-800/60 p-4">
                 <Slider
                   label="Agent lifespan"
                   value={maxStepsPerAgent()}
