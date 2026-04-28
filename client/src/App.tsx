@@ -474,23 +474,23 @@ export default function App() {
             <div class="mb-2 flex flex-wrap items-center gap-4">
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineMessagePlus size={14} class="text-orange-400" />
-                posts: <span class="text-orange-400">{stats().posts}</span>
+                Posts: <span class="text-orange-400">{stats().posts}</span>
               </span>
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineMessageCircle size={14} class="text-fuchsia-400" />
-                comments: <span class="text-fuchsia-400">{stats().comments}</span>
+                Comments: <span class="text-fuchsia-400">{stats().comments}</span>
               </span>
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineBolt size={14} class="text-emerald-400" />
-                votes: <span class="text-emerald-400">{stats().votes}</span>
+                Votes: <span class="text-emerald-400">{stats().votes}</span>
               </span>
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineAlertTriangle size={14} class="text-rose-400" />
-                errors: <span class="text-rose-400">{stats().errors}</span>
+                Errors: <span class="text-rose-400">{stats().errors}</span>
               </span>
               <span class="inline-flex items-center gap-1.5">
                 <TbOutlineUsers size={14} class="text-neutral-300" />
-                agent lifecycles: <span class="text-neutral-200">{doneAgents().length}</span>
+                Agent lifecycles: <span class="text-neutral-200">{doneAgents().length}</span>
               </span>
               <Show when={!loading() && activity().length > 0}>
                 <button
@@ -498,7 +498,7 @@ export default function App() {
                   onClick={() => setLogCollapsed(true)}
                   class="ml-auto inline-flex items-center gap-1 text-neutral-500 hover:text-neutral-300"
                 >
-                  hide
+                  Hide
                 </button>
               </Show>
             </div>
@@ -523,7 +523,7 @@ export default function App() {
             class="mt-8 inline-flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-neutral-300"
           >
             <TbOutlineChevronDown size={14} />
-            show activity log ({activity().length} events)
+            Show activity log ({activity().length} events)
           </button>
         </Show>
 
@@ -540,7 +540,7 @@ export default function App() {
                   class="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800"
                 >
                   <TbOutlineDownload size={14} />
-                  export MD
+                  Export MD
                 </button>
               </div>
               <div
@@ -564,7 +564,7 @@ export default function App() {
                   class="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800"
                 >
                   <TbOutlineDownload size={14} />
-                  export JSON
+                  Export JSON
                 </button>
               </div>
 
