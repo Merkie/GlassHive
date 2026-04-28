@@ -217,7 +217,7 @@ export default function App() {
     setResult(null);
     setReport(null);
     setActivity([
-      { kind: "phase", label: "Starting up the room…", tone: "start" },
+      { kind: "phase", label: "Starting simulation…", tone: "start" },
     ]);
     setDoneAgents([]);
     setLogCollapsed(false);
@@ -272,21 +272,21 @@ export default function App() {
               ...arr,
               {
                 kind: "phase",
-                label: `simulation complete — ${data.posts} posts, ${data.comments} comments`,
+                label: `Simulation complete — ${data.posts} posts, ${data.comments} comments`,
                 tone: "success",
               },
             ]);
           } else if (name === "report-start") {
             setActivity((arr) => [
               ...arr,
-              { kind: "phase", label: "writing report…", tone: "info" },
+              { kind: "phase", label: "Writing report…", tone: "info" },
             ]);
           } else if (name === "report-done") {
             if (data.markdown) {
               setReport(data.markdown);
               setActivity((arr) => [
                 ...arr,
-                { kind: "phase", label: "report ready", tone: "success" },
+                { kind: "phase", label: "Report ready", tone: "success" },
               ]);
               setLogCollapsed(true);
             } else {
@@ -294,7 +294,7 @@ export default function App() {
                 ...arr,
                 {
                   kind: "phase",
-                  label: `report skipped${data.error ? `: ${data.error}` : ""}`,
+                  label: `Report skipped${data.error ? `: ${data.error}` : ""}`,
                   tone: "info",
                 },
               ]);
