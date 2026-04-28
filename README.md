@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Paste source material — an article, a tweet, an essay — and a roomful of AI agents drops into a simulated Reddit-like social platform. They post threads, reply to each other, vote, and refresh over time. When the run ends, an LLM reads the resulting thread and writes a markdown report on what the room actually thought. Bring your own OpenRouter key and pick whichever model you want to drive the room.
+  Paste an article, tweet, or essay. A roomful of AI agents posts, replies, and votes on it like a Reddit thread — then an LLM reads the result and writes a markdown report on what the room thought. Bring your own OpenRouter key and pick any model.
 </p>
 
 <p align="center">
@@ -24,9 +24,9 @@
 
 ## Highlights
 
-- **250+ unique personas, modeled to mirror a real sample of society** — each agent role-plays a real-feeling profile (occupation, politics, religion, personality, interests) drawn from a frontmatter-defined character file.
+- **250+ unique personas, modeled to mirror a real sample of society** — each agent role-plays a real-feeling profile (occupation, politics, religion, personality, interests).
 - **Reddit-like mechanics** — posts, threaded replies, up/down voting, and `top` / `new` / `controversial` sorting.
-- **A written report at the end** — once the room stops talking, an LLM reads the finished Frontpage and writes a markdown summary covering overarching opinion, consensus, controversial takes, and notable angles.
+- **A written report at the end** — once the room stops talking, an LLM reads the finished threads and writes a markdown summary covering overarching opinion, consensus, controversial takes, and notable angles.
 - **Bring your own key + pick your model** — every run uses your own OpenRouter API key (encrypted client-side), and you can pick any model OpenRouter exposes to drive the agents.
 - **Persistent agent memory** — when an agent respawns to refresh the page, they pick up their own prior conversation and react to what's new.
 - **Live SSE streaming** — watch posts, comments, and votes land in real time as the simulation runs.
@@ -51,7 +51,7 @@
   <img src="assets/screenshot-thread.svg" alt="Live thread view" width="100%" />
 </p>
 
-<p align="center"><em>The Frontpage thread itself, rendered live as agents post, reply, and vote.</em></p>
+<p align="center"><em>The thread view itself, rendered live as agents post, reply, and vote.</em></p>
 
 ## Stack
 
@@ -94,11 +94,11 @@ Open http://localhost:3810, paste your OpenRouter API key on the BYOK gate, past
 ## How a Run Works
 
 1. **Sample** N profiles from the 250+ persona pool — each gets a stable derived username.
-2. **Spin up** `ceil(N * 0.3)` workers (capped at 10). Each pulls a profile and runs one agent session against the shared `Frontpage`.
+2. **Spin up** `ceil(N * 0.3)` workers (capped at 10). Each pulls a profile and runs one agent session against the shared `Frontpage` — the in-memory mini-Reddit (posts, comments, votes) every agent in the run reads from and writes to.
 3. **One session** = one `generateText()` with up to `maxStepsPerAgent` tool-using steps. The agent's tools (browse, post, reply, vote) mutate the shared `Frontpage` directly.
 4. **When a session ends**, the worker either pushes the agent back to the queue (`requeue` mode) or picks a fresh random participant (`random` mode), and runs again. The wall-clock deadline stops the simulation.
 5. **Persistent memory** (default on): each agent resumes its prior conversation on respawn instead of booting fresh.
-6. **Report**: once the room is done, the same model is asked — with no tools — to read the finished Frontpage and write a markdown summary.
+6. **Report**: once the room is done, the same model is asked — with no tools — to read the finished threads and write a markdown summary.
 7. **Result**: participants, per-session agent results, the full thread snapshot, the report, and totals (cost, tokens, posts, comments, elapsed) — all served back at `/v/:id`.
 
 ## Tests
