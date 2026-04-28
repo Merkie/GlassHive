@@ -217,7 +217,7 @@ export default function App() {
     setResult(null);
     setReport(null);
     setActivity([
-      { kind: "phase", label: "Spinning up the room…", tone: "start" },
+      { kind: "phase", label: "Starting up the room…", tone: "start" },
     ]);
     setDoneAgents([]);
     setLogCollapsed(false);
@@ -855,7 +855,7 @@ function ActivityLine(props: { event: Activity }) {
                   <TbOutlineCircleCheck size={12} class="mt-0.5 shrink-0 text-emerald-400" />
                 </Match>
                 <Match when={e().tone === "start"}>
-                  <TbOutlineLoader2 size={12} class="mt-0.5 shrink-0 animate-spin text-orange-400" />
+                  <TbOutlineSparkles size={12} class="mt-0.5 shrink-0 text-orange-400" />
                 </Match>
               </Switch>
               <span
