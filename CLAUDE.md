@@ -34,15 +34,21 @@ client/                              SolidJS + Vite + Tailwind v4
   src/
     index.tsx                        render(<App />)
     app.css                          @import "tailwindcss" + dark-mode body styling
+                                     + a `.report-md` block of @apply rules used by the
+                                     marked-rendered report HTML.
     App.tsx                          The whole UI — source textarea, two main sliders
                                      (Agents, Simulation duration) and a collapsible
                                      "Advanced settings" panel containing the Agent lifespan
                                      slider, Respawn mode toggle (Requeue / Random), and
                                      Persistent agent memory toggle. SSE client, live
-                                     activity feed (with phase markers for simulation-complete
-                                     / writing-report / report-ready), markdown-rendered
-                                     "the report" section above the threaded comment
-                                     renderer, JSON export.
+                                     activity feed (optimistic "Spinning up the room…"
+                                     entry on submit, live countdown timer in the header,
+                                     phase markers for simulation-complete / writing-report
+                                     / report-ready, auto-collapses when the report lands
+                                     with a "Show activity log" link to reopen),
+                                     markdown-rendered "the report" section above the
+                                     threaded comment renderer. Both sections have export
+                                     buttons (Markdown for the report, JSON for the thread).
 
 server/                              Express + tsx
   .env                               OPENROUTER_API_KEY + PORT
