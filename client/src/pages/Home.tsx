@@ -198,7 +198,7 @@ export default function Home() {
                 type="button"
                 onClick={resetKey}
                 disabled={loading()}
-                class="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+                class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1.5 text-xs font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
                 title="Clear saved key and re-enter"
               >
                 <TbOutlineKey size={14} class="text-neutral-500" />
@@ -246,7 +246,7 @@ export default function Home() {
               step={10}
               onChange={setDurationSec}
               disabled={loading()}
-              accent="text-emerald-400"
+              accent="text-orange-400"
               format={formatDuration}
               icon={<TbOutlineClock size={16} class="text-neutral-500" />}
             />
@@ -278,7 +278,7 @@ export default function Home() {
                   max={40}
                   onChange={setMaxStepsPerAgent}
                   disabled={loading()}
-                  accent="text-fuchsia-400"
+                  accent="text-orange-400"
                   unit="steps"
                   icon={<TbOutlineHeartbeat size={16} class="text-neutral-500" />}
                 />
