@@ -4,6 +4,7 @@ import { TbOutlineLoader2 } from "solid-icons/tb";
 import type { RunRecord, SimulationResult } from "../types";
 import Logo from "../components/Logo";
 import ActivityFeed from "../components/ActivityFeed";
+import Source from "../components/Source";
 import Report from "../components/Report";
 import Thread from "../components/Thread";
 
@@ -60,16 +61,22 @@ export default function View() {
             });
             return (
               <>
-                <ActivityFeed
-                  activity={record().activity}
-                  doneAgents={record().agentResults}
-                  collapsed={logCollapsed()}
-                  setCollapsed={setLogCollapsed}
-                  remainingSec={null}
-                  isLive={false}
-                />
+                <Source source={record().source} />
 
-                <Report markdown={record().report} />
+                <div class="pt-9 [&>*]:mt-0!">
+                  <ActivityFeed
+                    activity={record().activity}
+                    doneAgents={record().agentResults}
+                    collapsed={logCollapsed()}
+                    setCollapsed={setLogCollapsed}
+                    remainingSec={null}
+                    isLive={false}
+                  />
+                </div>
+
+                <div class="-mt-1">
+                  <Report markdown={record().report} />
+                </div>
 
                 <Thread result={result()} />
               </>
