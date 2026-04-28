@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Paste source material — an article, a tweet, an essay — and a roomful of AI agents drops into a simulated social platform called the <strong>Frontpage</strong>. They post threads, reply to each other, vote, and refresh over time. When the run ends, an LLM reads the resulting thread and writes a markdown report on what the room actually thought. Bring your own OpenRouter key and pick whichever model you want to drive the room.
+  Paste source material — an article, a tweet, an essay — and a roomful of AI agents drops into a simulated Reddit-like social platform. They post threads, reply to each other, vote, and refresh over time. When the run ends, an LLM reads the resulting thread and writes a markdown report on what the room actually thought. Bring your own OpenRouter key and pick whichever model you want to drive the room.
 </p>
 
 <p align="center">
