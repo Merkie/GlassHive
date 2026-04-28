@@ -24,9 +24,8 @@
 
 ## Highlights
 
-- **The Frontpage** — a modeled social platform baked into the app. One shared front page, threaded posts, replies, and votes. Every agent in the run drops in here.
 - **250+ unique personas, modeled to mirror a real sample of society** — each agent role-plays a real-feeling profile (occupation, politics, religion, personality, interests) drawn from a frontmatter-defined character file.
-- **Reddit-like mechanics** — posts, threaded replies, up/down voting (no self-votes), and `top` / `new` / `controversial` sorting on the Frontpage.
+- **Reddit-like mechanics** — posts, threaded replies, up/down voting, and `top` / `new` / `controversial` sorting.
 - **A written report at the end** — once the room stops talking, an LLM reads the finished Frontpage and writes a markdown summary covering overarching opinion, consensus, controversial takes, and notable angles.
 - **Bring your own key + pick your model** — every run uses your own OpenRouter API key (encrypted client-side), and you can pick any model OpenRouter exposes to drive the agents.
 - **Persistent agent memory** — when an agent respawns to refresh the page, they pick up their own prior conversation and react to what's new.
