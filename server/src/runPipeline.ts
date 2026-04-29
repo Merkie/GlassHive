@@ -14,6 +14,9 @@ import prisma from "./resources/prisma.js";
 
 export interface PipelineRequest {
   source: string;
+  // CDN URLs of any photos attached to the source. Each will be passed to
+  // every agent as part of their first user message; persisted on the Run row.
+  imageUrls: string[];
   agentCount: number;
   maxStepsPerAgent: number;
   durationSec: number;
@@ -89,6 +92,7 @@ async function persistRun(args: {
     data: {
       id,
       source: args.request.source,
+      imageUrls: JSON.stringify(args.request.imageUrls),
       agentCount: args.request.agentCount,
       maxStepsPerAgent: args.request.maxStepsPerAgent,
       durationSec: args.request.durationSec,
@@ -170,6 +174,7 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
 
   const result = await runSimulation({
     source: request.source,
+    imageUrls: request.imageUrls,
     pool: profiles,
     participants,
     apiKey,
@@ -232,6 +237,7 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
   return {
     id,
     ...result,
+    imageUrls: request.imageUrls,
     report: report.markdown,
     generatedProfiles,
     totals: finalTotals,

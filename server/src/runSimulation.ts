@@ -18,6 +18,10 @@ export type { SimulationMode };
 
 export interface SimulationOptions {
   source: string;
+  // CDN URLs of any photos attached to the prompt. Each agent receives them
+  // as image content in their first user message; on respawn the persistent
+  // memory carries the same images forward in the conversation history.
+  imageUrls?: string[];
   // Pool to sample from when `participants` is not supplied. Ignored when
   // `participants` is passed (caller has already resolved the roster, e.g.
   // tailored agents generated for this run).
@@ -50,6 +54,7 @@ export interface SimulationOptions {
 
 export interface SimulationResult {
   source: string;
+  imageUrls: string[];
   participants: Array<{
     username: string;
     name: string;
@@ -76,6 +81,7 @@ export interface SimulationResult {
 export async function runSimulation(opts: SimulationOptions): Promise<SimulationResult> {
   const {
     source,
+    imageUrls = [],
     pool,
     participants: preResolved,
     apiKey,
@@ -155,6 +161,7 @@ export async function runSimulation(opts: SimulationOptions): Promise<Simulation
       const fullResult = await runAgent({
         profile,
         source,
+        imageUrls,
         fp,
         model,
         maxSteps: maxStepsPerAgent,
@@ -215,6 +222,7 @@ export async function runSimulation(opts: SimulationOptions): Promise<Simulation
 
   return {
     source,
+    imageUrls,
     participants: participants.map((p) => ({
       username: p.username,
       name: p.name,

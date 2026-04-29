@@ -61,7 +61,7 @@ export default function View() {
             });
             return (
               <>
-                <Source source={record().source} />
+                <Source source={record().source} imageUrls={record().imageUrls} />
 
                 <div class="pt-9 [&>*]:mt-0!">
                   <ActivityFeed

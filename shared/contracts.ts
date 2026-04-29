@@ -107,6 +107,9 @@ export type Totals = {
 export type SimulationResult = {
   id?: string;
   source: string;
+  // Public URLs (CDN-hosted, already downscaled to webp) of any photos the
+  // user attached to the prompt. Empty array when none were uploaded.
+  imageUrls?: string[];
   participants: Participant[];
   agentResults: AgentResult[];
   snapshot: Snapshot;
@@ -133,6 +136,7 @@ export type RunSettings = {
 export type RunRecord = {
   id: string;
   source: string;
+  imageUrls: string[];
   settings: RunSettings;
   participants: Participant[];
   agentResults: AgentResult[];

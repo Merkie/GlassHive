@@ -7,6 +7,8 @@ import { loadProfiles } from "./profiles.js";
 import { runPipeline } from "./runPipeline.js";
 import prisma from "./resources/prisma.js";
 import cryptr from "./resources/cryptr.js";
+import { r2Configured, uploadToR2 } from "./resources/r2.js";
+import { downscaleForVlm } from "./image.js";
 import { runRequestSchema } from "./runRequestSchema.js";
 import type { RunRecord, RunStreamEventMap, RunStreamEventName } from "../../shared/contracts.js";
 import { searchOpenRouterModels, trimModelForClient } from "./openrouter-models.js";
@@ -111,6 +113,36 @@ app.post("/api/encrypt-key", async (req, res) => {
   const encryptedKey = cryptr.encrypt(key);
   res.json({ encryptedKey, mode: isAdmin ? "admin" : "user" });
 });
+
+app.post(
+  "/api/upload-image",
+  express.raw({ type: "image/*", limit: "25mb" }),
+  async (req, res) => {
+    if (!r2Configured()) {
+      return res.status(503).json({ error: "image upload not configured on this server" });
+    }
+    const encryptedKey = req.header("x-encrypted-key");
+    if (!encryptedKey) return res.status(401).json({ error: "missing key" });
+    try {
+      resolveApiKey(encryptedKey);
+    } catch {
+      return res.status(401).json({ error: "stored key is invalid — please re-enter" });
+    }
+    const buf = req.body;
+    if (!Buffer.isBuffer(buf) || buf.length === 0) {
+      return res.status(400).json({ error: "no image data" });
+    }
+    try {
+      const { buffer, mimeType } = await downscaleForVlm(buf);
+      const url = await uploadToR2({ body: buffer, contentType: mimeType, ext: ".webp" });
+      res.json({ url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("/api/upload-image failed:", msg);
+      res.status(500).json({ error: msg });
+    }
+  }
+);
 
 app.get("/api/profiles", (_req, res) => {
   res.json({
@@ -217,6 +249,7 @@ app.get("/api/runs/:id", async (req, res) => {
     const record: RunRecord = {
       id: row.id,
       source: row.source,
+      imageUrls: JSON.parse(row.imageUrls),
       settings: {
         agentCount: row.agentCount,
         maxStepsPerAgent: row.maxStepsPerAgent,

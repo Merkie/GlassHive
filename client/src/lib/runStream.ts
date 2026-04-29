@@ -7,6 +7,7 @@ import {
 export type RunStreamInput = {
   source: string;
   encryptedKey: string;
+  imageUrls: string[];
   agentCount: number;
   maxStepsPerAgent: number;
   durationSec: number;
@@ -59,6 +60,7 @@ export async function* openRunStream(input: RunStreamInput): AsyncGenerator<RunS
     body: JSON.stringify({
       source: input.source,
       encryptedKey: input.encryptedKey,
+      imageUrls: input.imageUrls,
       agentCount: input.agentCount,
       maxStepsPerAgent: input.maxStepsPerAgent,
       durationSec: input.durationSec,

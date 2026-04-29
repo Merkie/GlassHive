@@ -17,6 +17,9 @@ export const encryptedKeySchema = z
 export const runRequestSchema = z.object({
   source: z.string().min(1).max(20000),
   encryptedKey: encryptedKeySchema,
+  // CDN-hosted URLs returned by /api/upload-image. The server already
+  // downscaled and re-encoded these to webp; agents receive them by URL.
+  imageUrls: z.array(z.url().max(500)).max(8).default([]),
   agentCount: z.number().int().min(1).max(50).default(10),
   maxStepsPerAgent: z.number().int().min(1).max(40).default(12),
   durationSec: z.number().int().min(10).max(300).default(30),

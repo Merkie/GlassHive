@@ -1,4 +1,10 @@
-import { generateText, stepCountIs, type LanguageModel, type ModelMessage } from "ai";
+import {
+  generateText,
+  stepCountIs,
+  type LanguageModel,
+  type ModelMessage,
+  type UserModelMessage,
+} from "ai";
 import type { Profile } from "./profiles.js";
 import { buildTools, type ActivityEvent } from "./tools.js";
 import type { Frontpage } from "./frontpage.js";
@@ -6,6 +12,10 @@ import type { Frontpage } from "./frontpage.js";
 export interface AgentRunOptions {
   profile: Profile;
   source: string;
+  // CDN URLs of any photos attached to the source. Threaded into the agent's
+  // first user message as image content parts; on respawn they're already in
+  // priorMessages so we don't re-inject.
+  imageUrls?: string[];
   fp: Frontpage;
   model: LanguageModel;
   maxSteps: number;
@@ -35,8 +45,12 @@ export interface AgentRunResult {
   messages: ModelMessage[];
 }
 
-function buildSystemPrompt(profile: Profile, source: string): string {
-  return `You are a redditor browsing your favorite forum. You will be given the source material — an article, a news clip, an essay — and dropped into the comment section. You stay fully in character. React the way THIS PERSON would react: their politics, their interests, their reading level, their pet peeves, their tone. You are not an AI assistant. You are a real person with opinions, biases, and a comment style.
+function buildSystemPrompt(profile: Profile, source: string, imageCount: number): string {
+  const photoLine =
+    imageCount > 0
+      ? `\nThe source material also includes ${imageCount === 1 ? "a photo" : `${imageCount} photos`} attached — you'll see ${imageCount === 1 ? "it" : "them"} alongside the text below. React to the photo${imageCount === 1 ? "" : "s"} as part of the post.\n`
+      : "";
+  return `You are a redditor browsing your favorite forum. You will be given the source material — an article, a news clip, an essay — and dropped into the comment section. You stay fully in character. React the way THIS PERSON would react: their politics, their interests, their reading level, their pet peeves, their tone. You are not an AI assistant. You are a real person with opinions, biases, and a comment style.${photoLine}
 
 Here is your character:
 
@@ -85,8 +99,35 @@ const FIRST_VISIT_USER = (name: string) =>
 
 const RETURN_VISIT_USER = `You're back on the forum. Time has passed; there may be new posts and replies (including replies to YOUR comments). Pull the latest state with get_posts and/or get_post, react to anything new — vote, reply, maybe start a fresh post if the thread has shifted. Stay in character. Don't repeat what you already said earlier. Don't ask me anything; just start using the tools.`;
 
+function buildFirstVisitMessage(name: string, imageUrls: string[]): UserModelMessage {
+  if (imageUrls.length === 0) {
+    return { role: "user", content: FIRST_VISIT_USER(name) };
+  }
+  return {
+    role: "user",
+    content: [
+      { type: "text", text: "Photos attached to the source material:" },
+      ...imageUrls.map((url) => ({
+        type: "image" as const,
+        image: new URL(url),
+      })),
+      { type: "text", text: FIRST_VISIT_USER(name) },
+    ],
+  };
+}
+
 export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
-  const { profile, source, fp, model, maxSteps, deadline, onActivity, priorMessages } = opts;
+  const {
+    profile,
+    source,
+    imageUrls = [],
+    fp,
+    model,
+    maxSteps,
+    deadline,
+    onActivity,
+    priorMessages,
+  } = opts;
   if (Date.now() >= deadline) {
     return {
       username: profile.username,
@@ -106,8 +147,8 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     priorMessages && priorMessages.length > 0
       ? [...priorMessages, { role: "user", content: RETURN_VISIT_USER }]
       : [
-          { role: "system", content: buildSystemPrompt(profile, source) },
-          { role: "user", content: FIRST_VISIT_USER(profile.name) },
+          { role: "system", content: buildSystemPrompt(profile, source, imageUrls.length) },
+          buildFirstVisitMessage(profile.name, imageUrls),
         ];
 
   try {

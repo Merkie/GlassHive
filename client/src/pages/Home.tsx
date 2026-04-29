@@ -1,4 +1,4 @@
-import { createSignal, Show, type JSX } from "solid-js";
+import { createSignal, For, Show, onCleanup, type JSX } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import {
   TbOutlineSparkles,
@@ -16,6 +16,8 @@ import {
   TbOutlineCpu,
   TbOutlineAlertTriangle,
   TbOutlineWand,
+  TbOutlinePhoto,
+  TbOutlineX,
 } from "solid-icons/tb";
 import { formatDuration } from "../lib/format";
 import Logo from "../components/Logo";
@@ -23,6 +25,7 @@ import ActivityFeed from "../components/ActivityFeed";
 import KeyGate from "../components/KeyGate";
 import SettingsModal from "../components/SettingsModal";
 import { clearStoredKey, getStoredKey, type StoredKey } from "../lib/keyStore";
+import { uploadImage, UploadError } from "../lib/imageUpload";
 import {
   DEFAULT_MODEL_ID,
   getStoredAgentModel,
@@ -33,6 +36,16 @@ import {
 import { useRunSimulation } from "../hooks/useRunSimulation";
 
 const SAMPLE_SOURCE = `BREAKING: Chinese AI lab DeepSeek has released its flagship V4 model series, featuring a massive 1-million token context window and performance that trails GPT-5.5 by only a few months of development. Dropped overnight on Hugging Face under a permissive MIT license, the 1.6-trillion parameter V4-Pro model delivers frontier-class reasoning at roughly 1/30th the API cost of its Western counterparts. Silicon Valley is reportedly scrambling as the release fundamentally resets the economics of the global AI race.`;
+
+type Attachment = {
+  id: string;
+  previewUrl: string;
+  status: "uploading" | "done" | "error";
+  url?: string;
+  error?: string;
+};
+
+const MAX_ATTACHMENTS = 8;
 
 export default function Home() {
   const navigate = useNavigate();
@@ -46,6 +59,65 @@ export default function Home() {
   const [tailoredAgents, setTailoredAgents] = createSignal(false);
   const [showAdvanced, setShowAdvanced] = createSignal(false);
   const [confirmOpen, setConfirmOpen] = createSignal(false);
+  const [attachments, setAttachments] = createSignal<Attachment[]>([]);
+
+  let fileInputEl: HTMLInputElement | undefined;
+
+  const anyUploading = () => attachments().some((a) => a.status === "uploading");
+  const doneUrls = () =>
+    attachments()
+      .filter((a) => a.status === "done" && a.url)
+      .map((a) => a.url!);
+
+  onCleanup(() => {
+    for (const a of attachments()) URL.revokeObjectURL(a.previewUrl);
+  });
+
+  const removeAttachment = (id: string) => {
+    setAttachments((arr) => {
+      const next = arr.filter((a) => a.id !== id);
+      const removed = arr.find((a) => a.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return next;
+    });
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const stored = keyBlob();
+    if (!stored) return;
+
+    const slots = MAX_ATTACHMENTS - attachments().length;
+    const queued = Array.from(files).slice(0, slots);
+
+    const newOnes: Attachment[] = queued.map((file) => ({
+      id: crypto.randomUUID(),
+      previewUrl: URL.createObjectURL(file),
+      status: "uploading",
+    }));
+    setAttachments((arr) => [...arr, ...newOnes]);
+
+    await Promise.all(
+      newOnes.map(async (att, i) => {
+        try {
+          const url = await uploadImage(queued[i], stored.encryptedKey);
+          setAttachments((arr) =>
+            arr.map((a) => (a.id === att.id ? { ...a, status: "done", url } : a))
+          );
+        } catch (err) {
+          const msg =
+            err instanceof UploadError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : String(err);
+          setAttachments((arr) =>
+            arr.map((a) => (a.id === att.id ? { ...a, status: "error", error: msg } : a))
+          );
+        }
+      })
+    );
+  };
 
   const tailoredHighRisk = () => tailoredAgents() && agentCount() >= 20;
 
@@ -93,6 +165,7 @@ export default function Home() {
     void run({
       source: text,
       encryptedKey: stored.encryptedKey,
+      imageUrls: doneUrls(),
       agentCount: agentCount(),
       maxStepsPerAgent: maxStepsPerAgent(),
       durationSec: durationSec(),
@@ -157,6 +230,75 @@ export default function Home() {
               onInput={(e) => setSource(e.currentTarget.value)}
               disabled={loading()}
             />
+
+            <div class="mt-3">
+              <input
+                ref={(el) => (fileInputEl = el)}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  void handleFiles(e.currentTarget.files);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputEl?.click()}
+                  disabled={loading() || attachments().length >= MAX_ATTACHMENTS}
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-neutral-700 bg-neutral-950/40 px-3 py-1.5 text-xs font-medium text-neutral-300 transition hover:border-neutral-600 hover:bg-neutral-900 hover:text-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <TbOutlinePhoto size={14} class="text-neutral-500" />
+                  Attach photo
+                </button>
+                <Show when={attachments().length > 0}>
+                  <span class="text-[11px] text-neutral-500">
+                    {attachments().length}/{MAX_ATTACHMENTS} attached — agents see these alongside
+                    the text
+                  </span>
+                </Show>
+              </div>
+              <Show when={attachments().length > 0}>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <For each={attachments()}>
+                    {(att) => (
+                      <div class="group relative h-20 w-20 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+                        <img
+                          src={att.previewUrl}
+                          alt=""
+                          class="h-full w-full object-cover"
+                          classList={{ "opacity-50": att.status !== "done" }}
+                        />
+                        <Show when={att.status === "uploading"}>
+                          <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <TbOutlineLoader2 size={18} class="animate-spin text-neutral-200" />
+                          </div>
+                        </Show>
+                        <Show when={att.status === "error"}>
+                          <div
+                            class="absolute inset-0 flex items-center justify-center bg-rose-950/70 px-1 text-center text-[10px] leading-tight text-rose-200"
+                            title={att.error ?? "upload failed"}
+                          >
+                            Upload failed
+                          </div>
+                        </Show>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(att.id)}
+                          disabled={loading()}
+                          class="absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-neutral-200 opacity-0 transition group-hover:opacity-100 hover:bg-black hover:text-white disabled:hidden"
+                          aria-label="Remove photo"
+                        >
+                          <TbOutlineX size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </Show>
+            </div>
 
             <div class="mt-5 grid gap-5 sm:grid-cols-2">
               <div>
@@ -328,7 +470,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={submit}
-                disabled={loading() || !source().trim() || !keyBlob()}
+                disabled={loading() || !source().trim() || !keyBlob() || anyUploading()}
                 class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Show when={loading()} fallback={<TbOutlineSparkles size={18} />}>
@@ -340,7 +482,9 @@ export default function Home() {
                     : reporting()
                       ? "Finishing up…"
                       : "The room is talking…"
-                  : "Generate"}
+                  : anyUploading()
+                    ? "Uploading photos…"
+                    : "Generate"}
               </button>
             </div>
           </section>

@@ -14,6 +14,7 @@ datasource db {
 model Run {
   id                String   @id
   source            String
+  imageUrls         String   @default("[]") // JSON: string[] — CDN URLs of attached photos
   agentCount        Int
   maxStepsPerAgent  Int
   durationSec       Int
