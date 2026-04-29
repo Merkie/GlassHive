@@ -158,6 +158,7 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
     const gen = await generateProfiles({
       model: agentModel,
       source: request.source,
+      imageUrls: request.imageUrls,
       count: request.agentCount,
     });
     participants = gen.profiles;

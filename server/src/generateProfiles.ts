@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { generateText, Output, type LanguageModel } from "ai";
+import { generateText, Output, type LanguageModel, type UserModelMessage } from "ai";
 import { z } from "zod";
 import { deriveUsername, type Profile } from "./profiles.js";
 import type { GeneratedProfile } from "../../shared/contracts.js";
@@ -7,6 +7,10 @@ import type { GeneratedProfile } from "../../shared/contracts.js";
 export interface GenerateProfilesOptions {
   model: LanguageModel;
   source: string;
+  // CDN URLs of any photos attached to the source. The planner sees them so
+  // the personas it designs can be tailored around what's actually in the
+  // image (e.g. interior-design pros for a photo of a living room).
+  imageUrls?: string[];
   count: number;
 }
 
@@ -105,10 +109,14 @@ Output rules:
 - Do not reference the user, the AI, or this prompt in any field. The personas should read like real people who exist independently.
 - Keep the bio in third person ("She is a…"), not first person.`;
 
-function buildUserPrompt(source: string, count: number): string {
+function buildUserPrompt(source: string, count: number, imageCount: number): string {
+  const photoLine =
+    imageCount > 0
+      ? `\nThe source material also includes ${imageCount === 1 ? "a photo" : `${imageCount} photos`} attached below — factor what's in the photo${imageCount === 1 ? "" : "s"} into the personas you design (e.g. an architecture nerd if the photo is a building, a stylist if it's a fit pic).\n`
+      : "";
   return `Generate ${count} distinct personas for a Reddit-style comment section reacting to the following source material.
 
-Aim for the spread described in the example: vary expertise, politics, age, location, and personality so the room argues with itself instead of echoing.
+Aim for the spread described in the example: vary expertise, politics, age, location, and personality so the room argues with itself instead of echoing.${photoLine}
 
 === SOURCE MATERIAL ===
 
@@ -117,6 +125,24 @@ ${source}
 """
 
 Now produce the JSON. Exactly ${count} personas. No archetype should repeat.`;
+}
+
+function buildPlannerUserMessage(
+  source: string,
+  count: number,
+  imageUrls: string[]
+): UserModelMessage {
+  const text = buildUserPrompt(source, count, imageUrls.length);
+  if (imageUrls.length === 0) {
+    return { role: "user", content: text };
+  }
+  return {
+    role: "user",
+    content: [
+      { type: "text", text },
+      ...imageUrls.map((url) => ({ type: "image" as const, image: new URL(url) })),
+    ],
+  };
 }
 
 type Persona = z.infer<typeof personaSchema>;
@@ -146,7 +172,7 @@ function extractCost(providerMetadata: unknown): number {
 export async function generateProfiles(
   opts: GenerateProfilesOptions
 ): Promise<GenerateProfilesResult> {
-  const { model, source, count } = opts;
+  const { model, source, imageUrls = [], count } = opts;
   if (count < 1) throw new Error("count must be at least 1");
   if (!source.trim()) throw new Error("source must not be empty");
 
@@ -157,7 +183,7 @@ export async function generateProfiles(
     },
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(source, count) },
+      buildPlannerUserMessage(source, count, imageUrls),
     ],
     output: Output.object({ schema: responseSchema }),
   });
